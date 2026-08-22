@@ -9,7 +9,7 @@
 - [System Architecture](#system-architecture)
 - [Technology Stack](#technology-stack)
 - [Core Workflows & User Journey](#core-workflows--user-journey)
-- [API Endpoints Reference](#api-endpoints-reference)
+- [License](#license)
 
 ---
 
@@ -98,49 +98,6 @@ flowchart TD
 | **5. PDF Booklets** | `/trips` or Planner | Click PDF Export trigger on any active trip card. | Multi-page luxury itinerary booklet with cover page and category badges. |
 | **6. Share & Clone** | `/public/trips/:id` | Publish trip publicly and share via WhatsApp, X, or direct link. | Read-only view with 1-click "Copy to My Trips" cloning for other users. |
 | **7. Platform Admin** | `/admin` | Enter master administrator passkey to view platform adoption stats. | Executive dashboard with top destinations, travel day counts, and platform ledger. |
-
----
-
-## API Endpoints Reference
-
-### 1. Trips Management
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips` | Retrieve all itineraries owned by the authenticated user | Yes |
-| `POST` | `/api/trips` | Create a new trip with destination, dates, and target budget | Yes |
-| `GET` | `/api/trips/<id>` | Fetch complete trip details with associated stops and items | Yes |
-| `PUT` | `/api/trips/<id>` | Update trip metadata, date boundaries, or public visibility | Yes |
-| `DELETE` | `/api/trips/<id>` | Delete an itinerary and cascade remove all related day items | Yes |
-| `POST` | `/api/trips/<id>/duplicate` | Clone a trip and all its day items into user account | Yes |
-| `GET` | `/api/public/trips/<id>` | Read-only public itinerary view accessible without authentication | No |
-| `POST` | `/api/trips/<id>/cover` | Upload and attach cover photograph to trip | Yes |
-
-### 2. Day-by-Day Planning & Schedule
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips/<id>/days` | Retrieve all organized days and scheduled items for a trip | Yes |
-| `POST` | `/api/trips/<id>/days/<date>/items` | Add a scheduled activity, stay, flight, or food item to a specific date | Yes |
-| `PUT` | `/api/day-items/<id>` | Update activity name, category, timing, cost, or order index | Yes |
-| `DELETE` | `/api/day-items/<id>` | Remove a scheduled item from the itinerary | Yes |
-
-### 3. Financial Telemetry & Budgeting
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips/<id>/budget` | Retrieve category breakdown, itemized costs, and budget health | Yes |
-
-### 4. Place Discovery & Bookmarks
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/places/search` | Search places and attractions by city name and category filter | Yes |
-| `GET` | `/api/places/<id>` | Retrieve detailed place metadata, address, and photo | Yes |
-| `GET` | `/api/saves` | List bookmarked places and saved attractions for current user | Yes |
-| `POST` | `/api/saves` | Save a place to personal bookmarks collection | Yes |
-| `DELETE` | `/api/saves/<id>` | Remove a place from saved bookmarks collection | Yes |
-
-### 5. Platform & Admin Analytics
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/api/admin/analytics` | Aggregate platform-wide adoption metrics, top cities, and trip activity | Yes |
 
 ---
 
