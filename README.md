@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.png" width="180" height="180" alt="GlobeTrotter Logo" style="border-radius: 50%; box-shadow: 0 12px 36px rgba(245, 180, 41, 0.25);" />
+<img src="assets/logo.png" width="160" height="160" alt="GlobeTrotter Logo" style="border-radius: 50%; box-shadow: 0 12px 36px rgba(245, 180, 41, 0.25);" />
 
 # GlobeTrotter
 
@@ -37,11 +37,71 @@
 
 ---
 
+## Sample Itinerary PDF Export
+
+Experience the magazine-grade offline travel booklet generated directly by GlobeTrotter:
+
+📄 **[Download & View Sample Itinerary PDF (Trip Across South India)](assets/Trip_across_South_India_Itinerary.pdf)**
+
+---
+
+## Visual Showcase & Screenshots
+
+### 1. Landing Page & Value Proposition
+*Modern hero presentation showcasing live interactive itinerary demos, quick destination searches, and core feature pillars.*
+
+![Landing Page Showcase](assets/screenshots/01_landing_page.png)
+
+---
+
+### 2. Authentication & Secure Gateway
+*Streamlined authentication interface supporting secure email/password login and Supabase OAuth integration.*
+
+![Login & Auth](assets/screenshots/02_login_auth.png)
+
+---
+
+### 3. Traveler Control Dashboard
+*Central control center displaying upcoming itineraries, countdown telemetry, financial summary widgets, and bookmarked place stash.*
+
+![Traveler Dashboard](assets/screenshots/03_travel_dashboard.png)
+
+---
+
+### 4. Interactive Monthly Travel Calendar
+*Full-month visual planner highlighting scheduled trip dates, destination tags, flights, stays, food spots, and daily activity pills with 1-click day navigation.*
+
+![Monthly Travel Calendar](assets/screenshots/04_calendar_itinerary_view.png)
+
+---
+
+### 5. Travel Budget & Financial Analytics
+*Deep financial telemetry providing geographic spending analysis across destinations and proportional category distribution.*
+
+![Budget & Financial Analytics](assets/screenshots/04_budget_financial_analytics.png)
+
+---
+
+### 6. Traveler Profile & Preferences
+*Personalized traveler hub featuring custom monogram badge selection, travel style toggles, and regional currency settings.*
+
+![Profile & Settings](assets/screenshots/05_profile_settings.png)
+
+---
+
+### 7. Executive Administration & Platform Telemetry
+*Dedicated `/admin` management console featuring 6-month growth trajectories, weekly engagement bar charts, and destination rankings.*
+
+![Admin & Platform Telemetry](assets/screenshots/06_admin_analytics.png)
+
+---
+
 ## Key Capabilities & System Features
 
-### 1. Interactive Multi-City Day Planner
+### 1. Interactive Multi-City Day Planner & Calendar
 - **Dynamic Timeline Sequencing**: Build granular day-by-day travel schedules with sequential stops and time slot scheduling.
-- **Categorized Drawers**: Seamlessly manage 7 experience categories: *Sightseeing*, *Food & Dining*, *Stays & Hotels*, *Flights & Transit*, *Adventures*, *Culture & Arts*, and *Other Activities*.
+- **Monthly Interactive Calendar**: Full-calendar overview mapping multi-city spans, airline transit legs, and day cards.
+- **Categorized Drawers**: Seamlessly manage 7 experience categories: *Sightseeing*, *Food & Dining*, *Stays & Hotels*, *Flights & Transit*, *Adventures*, *Culture & Arts*, and *Notes*.
 - **Interactive GIS Map Visualization**: Real-time Leaflet & OpenStreetMap view rendering route polylines and interactive pin markers with popup details.
 
 ### 2. Voyage AI Concierge
@@ -49,7 +109,7 @@
 - **1-Click Itinerary Insertion**: Add AI-recommended attractions and activities directly into active travel itineraries.
 
 ### 3. Smart Discovery & Global Stash
-- **Live Place Discovery**: Real-time place searches by city and category with Wikipedia imagery, tags, ratings, and estimated costs in INR (Rs.).
+- **Live Place Discovery**: Real-time place searches by city and category with Wikipedia imagery, tags, ratings, and estimated costs in INR (₹).
 - **Global Saved Places Pool**: Save places across searches into a persistent personal stash for later itinerary assignment.
 
 ### 4. Financial Telemetry & Budget Optimization
@@ -62,7 +122,7 @@
 
 ### 6. Executive Administration & Live Telemetry Console
 - **Dedicated Standalone Gateway**: Secure access control at `/admin` (Passkey: `admin2026`).
-- **Telemetry Visualizations**: 6-Month Itinerary Trajectory Area Charts, Weekly Traveler Activity Bar Charts, Interactive Category Expenditure Donut, and Geographic Destination Rankings with landmark-to-city resolution.
+- **Telemetry Visualizations**: 6-Month Itinerary Trajectory Area Charts, Weekly Traveler Activity Bar Charts, Interactive Category Expenditure Donut, and Geographic Destination Rankings.
 
 ---
 
@@ -74,6 +134,7 @@ flowchart TD
         Landing["Landing Showcase Page"]
         Dashboard["Traveler Dashboard"]
         Planner["Interactive Day Planner & Map"]
+        Calendar["Interactive Monthly Calendar View"]
         AI["Voyage AI Concierge Drawer"]
         Admin["Executive Admin Console"]
     end
@@ -120,8 +181,17 @@ flowchart TD
 
 ```
 globetrotter/
-├── assets/                  # Brand assets & project logo
-│   └── logo.png
+├── assets/                  # Brand assets, project logo, screenshots & sample PDF
+│   ├── logo.png
+│   ├── Trip_across_South_India_Itinerary.pdf
+│   └── screenshots/
+│       ├── 01_landing_page.png
+│       ├── 02_login_auth.png
+│       ├── 03_travel_dashboard.png
+│       ├── 04_calendar_itinerary_view.png
+│       ├── 04_budget_financial_analytics.png
+│       ├── 05_profile_settings.png
+│       └── 06_admin_analytics.png
 ├── backend/                 # Python Flask REST API
 │   ├── app.py               # Main Flask server & route handlers
 │   ├── requirements.txt     # Backend dependencies
@@ -131,12 +201,12 @@ globetrotter/
 │   │   ├── components/      # UI components (TripMap, Icons, AIChatDrawer)
 │   │   ├── pages/           # Application views (DayPlanner, AdminAnalytics, etc.)
 │   │   ├── context/         # React Context providers (ToastContext)
-│   │   ├── api.js           # Centralized API client
+│   │   ├── api.js           # Centralized API client with in-memory caching
 │   │   ├── supabaseClient.js# Supabase client configuration
 │   │   └── index.css        # Global design system & theme tokens
 │   ├── public/              # Static public assets (logo.png, favicon.png)
 │   ├── package.json         # Node dependencies & build scripts
-│   └── vite.config.js       # Vite configuration
+│   └── vite.config.js       # Vite configuration with vendor code-splitting
 └── README.md                # Project documentation
 ```
 
@@ -147,46 +217,32 @@ globetrotter/
 ### 1. Prerequisites
 - **Node.js**: v18.0 or higher
 - **Python**: v3.9 or higher
+- **Supabase Account & Groq API Key**
 
 ### 2. Backend Setup
 ```bash
-# Navigate to the backend directory
 cd backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
 
-# Install Python dependencies
 pip install -r requirements.txt
-
-# Start the Flask API server
 python app.py
 ```
-*The backend service will be live at `http://localhost:5000`.*
+*Backend runs locally on `http://127.0.0.1:5000`.*
 
 ### 3. Frontend Setup
 ```bash
-# Navigate to the frontend directory
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the Vite development server
 npm run dev
 ```
-*The frontend application will be accessible at `http://localhost:5173`.*
+*Frontend runs locally on `http://localhost:5173`.*
 
 ---
 
-## Admin Portal Quick Access
+## License & Acknowledgements
 
-- **URL**: `http://localhost:5173/admin`
-- **Administrator Email**: `admin@globetrotter.com`
-- **Master Admin Passkey**: `admin2026`
-- **Evaluator Access**: A 1-Click bypass button is available directly on the admin login screen for evaluators.
-
----
-
-<div align="center">
-
-**GlobeTrotter** · Developed for the **Odoo x LDCE Hackathon 2026**
-
-</div>
+Created with ❤️ by **Kavin Jindal**, **Sarthakk Anjariya**, **Pooja Teotia**, and **Ishita Mehta** for the **Odoo x LDCE Hackathon 2026**.
