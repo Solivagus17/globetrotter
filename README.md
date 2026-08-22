@@ -1,6 +1,6 @@
 # GlobeTrotter — Intelligent Travel Itinerary & Budget Planner
 
-> An intelligent, full-stack travel planning platform inspired by TripAdvisor and Google Trips. GlobeTrotter combines dynamic day-by-day schedule builders, OpenStreetMap live geocoding, multi-destination financial analytics, and **Voyage AI** — a contextual AI travel concierge powered by Groq LLMs.
+> An intelligent, full-stack travel planning platform. GlobeTrotter combines dynamic day-by-day schedule builders, OpenStreetMap live geocoding, multi-destination financial analytics, and **Voyage AI** — a contextual AI travel concierge powered by Groq LLMs.
 
 ---
 
@@ -18,7 +18,7 @@
 
 ## Key Features
 
-### 1. TripAdvisor-Style Day-by-Day Planner
+### 1. Day-by-Day Schedule & Itinerary Planner
 - **Multi-Day Schedule Builder**: Organize trips day by day with custom start and end dates.
 - **Granular Activity Categories**: Dedicated quick-add drawers for:
   - **Stays & Hotels**: Check-in/out dates, price in INR (Rs.), and amenities.
@@ -201,7 +201,7 @@ activities (
     order_index INT DEFAULT 0
 );
 
--- TripAdvisor-Style Day Items
+-- Day-by-Day Scheduled Items
 day_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID REFERENCES trips(id) ON DELETE CASCADE,
