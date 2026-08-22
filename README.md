@@ -1,35 +1,72 @@
-# GlobeTrotter — Intelligent Travel Itinerary & Budget Planner
+<div align="center">
 
-> An intelligent, full-stack travel planning platform built for the Odoo Hackathon. GlobeTrotter combines dynamic multi-city schedule builders, OpenStreetMap live geocoding, multi-destination financial telemetry, luxury PDF exports, and AI-assisted travel discovery.
+<img src="assets/logo.png" width="180" height="180" alt="GlobeTrotter Logo" style="border-radius: 50%; box-shadow: 0 12px 36px rgba(245, 180, 41, 0.25);" />
+
+# GlobeTrotter
+
+### Intelligent Multi-City Itinerary Architect & AI Travel Concierge
+
+**Built with pride for the Odoo x LDCE Hackathon 2026**
+
+[![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
+[![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
+[![Flask](https://img.shields.io/badge/Flask_REST_API-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Supabase](https://img.shields.io/badge/Supabase_PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Groq AI](https://img.shields.io/badge/Groq_Llama_3-F55036?style=for-the-badge&logo=openai&logoColor=white)](https://groq.com/)
+[![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-7EBC6F?style=for-the-badge&logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org/)
 
 ---
 
-## Table of Contents
-- [Platform Overview & Feature Matrix](#platform-overview--feature-matrix)
-- [System Architecture](#system-architecture)
-- [Technology Stack](#technology-stack)
-- [Core Workflows & User Journey](#core-workflows--user-journey)
-- [License](#license)
+</div>
+
+## Executive Overview
+
+**GlobeTrotter** is a modern, full-stack travel intelligence platform engineered to eliminate the fragmentation and friction of multi-city journey planning. Built for the **Odoo x LDCE Hackathon**, it combines real-time geographic discovery, dynamic day-by-day route sequencing, AI travel concierges, multi-currency budget optimizers, public community sharing, and standalone executive telemetry in a single, glassmorphic web application.
 
 ---
 
-## Platform Overview & Feature Matrix
+## Team Members & Hackathon Attribution
 
-| Module | Feature Name | Core Functionality | UI Route |
-| :--- | :--- | :--- | :--- |
-| **Authentication** | Login & User Management | Email/password login, account registration, password reset recovery, profile customization. | `/login`, `/profile` |
-| **Landing Page** | Luxury Welcome Portal | Glassmorphic hero showcase, live interactive itinerary demo, and quick trip launcher. | `/`, `/landing` |
-| **Dashboard** | Traveler Hub | Overview of active trips, recommended destinations, quick actions, and expense highlights. | `/dashboard` |
-| **Trip Management** | Multi-City Itinerary Index | Searchable trip cards, duration counters, duplication, edit, and deletion actions. | `/trips` |
-| **Trip Creation** | Journey Canvas Setup | Destination selection, start & end dates, target budget in INR (Rs.), and cover photos. | `/trips/new` |
-| **Itinerary Builder** | Day-by-Day Day Planner | Granular drawers for stays, flights, food, sightseeing, and adventures with stop reordering. | `/trips/:id/builder` |
-| **Itinerary View** | Structured Timeline | Chronological view with day capsules, city badges, time slots, and calendar mode switch. | `/trips/:id/view` |
-| **Discovery Engine** | Places & Attractions Search | Live OpenStreetMap geocoding, category filters (Food, Sights, Adventure), and place cards. | `/discover` |
-| **Budget Telemetry** | Single-Trip Expense Tracking | Category distribution (Stays, Flights, Food, Sights), target budget gauge, and overbudget alerts. | `/trips/:id/budget` |
-| **Global Analytics** | Cross-Trip Financials | Geographic city spend bar chart, cross-itinerary cost ledger, and average daily spend. | `/budget` |
-| **Public Sharing** | Community Sharing & Cloning | Read-only public URLs, social sharing (WhatsApp, X, Link), and 1-click itinerary duplication. | `/public/trips/:id` |
-| **Bespoke Exports** | Magazine-Style PDF Booklets | Dedicated luxury cover page, alternating day capsules, and explicit category badges. | *Export Action* |
-| **Admin Portal** | Platform Adoption Analytics | System-wide trip counts, total travel days, category distribution, and top destination rankings. | `/admin` |
+> **Event**: Odoo x LDCE Hackathon 2026  
+> **Project**: GlobeTrotter — Multi-City Travel Planner & AI Concierge  
+> **Track**: Full-Stack Web Development & AI Integration
+
+| Team Member | Role & Contributions |
+| :--- | :--- |
+| **Kavin Jindal** | Full-Stack Architecture, Real-Time Leaflet GIS Mapping & UI Design Systems |
+| **Sarthakk Anjariya** | Backend REST Services, Supabase PostgreSQL Engine & Data Modeling |
+| **Pooja Teotia** | Voyage AI Concierge Integration, Groq LLM Pipelines & Prompt Engineering |
+| **Ishita Mehta** | Financial Telemetry, Budget Optimization Engines & PDF Booklet Generation |
+
+---
+
+## Key Capabilities & System Features
+
+### 1. Interactive Multi-City Day Planner
+- **Dynamic Timeline Sequencing**: Build granular day-by-day travel schedules with sequential stops and time slot scheduling.
+- **Categorized Drawers**: Seamlessly manage 7 experience categories: *Sightseeing*, *Food & Dining*, *Stays & Hotels*, *Flights & Transit*, *Adventures*, *Culture & Arts*, and *Other Activities*.
+- **Interactive GIS Map Visualization**: Real-time Leaflet & OpenStreetMap view rendering route polylines and interactive pin markers with popup details.
+
+### 2. Voyage AI Concierge
+- **Context-Aware Assistance**: Powered by Groq high-throughput LLMs to suggest custom day plans, packing recommendations, budget advice, and local food spots.
+- **1-Click Itinerary Insertion**: Add AI-recommended attractions and activities directly into active travel itineraries.
+
+### 3. Smart Discovery & Global Stash
+- **Live Place Discovery**: Real-time place searches by city and category with Wikipedia imagery, tags, ratings, and estimated costs in INR (Rs.).
+- **Global Saved Places Pool**: Save places across searches into a persistent personal stash for later itinerary assignment.
+
+### 4. Financial Telemetry & Budget Optimization
+- **Per-Trip Budget Tracking**: Compare planned costs against target budgets with color-coded alerts and category breakdown gauges.
+- **Global Multi-Trip Analytics**: Cross-itinerary expense comparisons, average daily spend tracking, and multi-currency converter (INR, USD, EUR, GBP, JPY, AED).
+
+### 5. Community Sharing & Export Engine
+- **Read-Only Public URLs**: Frictionless itinerary sharing with 1-click WhatsApp, X, and link copy buttons.
+- **Magazine-Quality PDF Export**: Formatted printable itinerary booklets for offline access.
+
+### 6. Executive Administration & Live Telemetry Console
+- **Dedicated Standalone Gateway**: Secure access control at `/admin` (Passkey: `admin2026`).
+- **Telemetry Visualizations**: 6-Month Itinerary Trajectory Area Charts, Weekly Traveler Activity Bar Charts, Interactive Category Expenditure Donut, and Geographic Destination Rankings with landmark-to-city resolution.
 
 ---
 
@@ -37,69 +74,123 @@
 
 ```mermaid
 flowchart TD
-    subgraph Frontend["Frontend (React 18 + Vite)"]
-        UI["Pages & Components"]
-        Context["Auth & Toast Context"]
-        PDF["Bespoke PDF Engine (jsPDF)"]
-        Map["Leaflet / OSM Map Viewer"]
-        API_Client["Centralized API Client (api.js)"]
+    subgraph Client["Frontend Layer (React 18 + Vite)"]
+        Landing["Landing Showcase Page"]
+        Dashboard["Traveler Dashboard"]
+        Planner["Interactive Day Planner & Map"]
+        AI["Voyage AI Concierge Drawer"]
+        Admin["Executive Admin Console"]
     end
 
-    subgraph Backend["Backend (Flask REST API)"]
-        Routes["API Route Handlers"]
-        Analytics["Budget & Geographic Analytics"]
-        AdminModule["Admin & Platform Aggregator"]
-        Storage["Image & Asset Storage Handler"]
+    subgraph Server["API Core (Python Flask REST Microservice)"]
+        TripRoutes["Trip & Itinerary Route Handlers"]
+        AnalyticsEngine["Financial & Geographic Aggregators"]
+        AIRoutes["Groq LLM Streaming & AI Handlers"]
+        AdminService["Platform Telemetry & Landmark Mapper"]
     end
 
-    subgraph External["Data & Cloud Services"]
-        Supabase_DB[("Supabase PostgreSQL")]
-        Supabase_Auth["Supabase Auth (JWT)"]
-        Supabase_Storage["Supabase Object Storage"]
-        OSM["OpenStreetMap / Nominatim API"]
+    subgraph Data["Cloud & Storage Services"]
+        SupabaseDB[("Supabase PostgreSQL DB")]
+        SupabaseAuth["Supabase Authentication (JWT)"]
+        OSM["OpenStreetMap / Nominatim GIS Engine"]
+        GroqCloud["Groq Cloud Llama-3 LLM Engine"]
     end
 
-    UI --> API_Client
-    UI --> PDF
-    UI --> Map
-    Map --> OSM
-    API_Client --> Routes
-    Routes --> Analytics
-    Routes --> AdminModule
-    Routes --> Supabase_DB
-    Routes --> Supabase_Auth
-    Routes --> Supabase_Storage
+    Client --> Server
+    Planner --> OSM
+    AI --> AIRoutes
+    Server --> SupabaseDB
+    Server --> SupabaseAuth
+    AIRoutes --> GroqCloud
 ```
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology | Purpose | Key Libraries & Specifications |
-| :--- | :--- | :--- | :--- |
-| **Frontend Framework** | React 18 | Declarative component hierarchy and dynamic state management | Vite, React Router v6 |
-| **Styling & Design** | Vanilla CSS3 | Custom design system, glassmorphism, floating micro-animations | Outfit typography, CSS variables |
-| **Mapping & GIS** | Leaflet & OpenStreetMap | Real-time geocoding, interactive pin markers, and route display | React-Leaflet, Nominatim API |
-| **Document Generation**| jsPDF | Swiss/Paris luxury editorial PDF itinerary booklets | jsPDF, AutoTable |
-| **Backend Framework** | Python 3 / Flask | RESTful API endpoints, data validation, and calculation engines | Flask, Flask-CORS, Gunicorn |
-| **Database & Auth** | Supabase | Managed PostgreSQL with Row-Level Security and JWT Auth | Supabase Python SDK |
-| **Asset Storage** | Supabase Storage | Cloud object storage for trip cover photography | Public CDN buckets |
+| Domain | Technology | Specification & Usage |
+| :--- | :--- | :--- |
+| **Frontend UI** | React 18 + Vite | Declarative component hierarchy with fast HMR |
+| **Design System** | Custom Vanilla CSS | Glassmorphism, warm ambient background gradients, Outfit / Plus Jakarta Sans typography |
+| **Mapping Engine** | Leaflet + OpenStreetMap | Interactive GIS map with coordinate bounds and polyline routes |
+| **Backend REST API** | Python 3 / Flask | Lightweight microservice handling CRUD, calculations, and analytics |
+| **Database & Auth** | Supabase PostgreSQL | Managed database with Row Level Security (RLS) and JWT auth |
+| **AI LLM Pipeline** | Groq SDK (Llama-3-70B) | High-speed, context-aware itinerary and travel recommendations |
+| **Document Export** | jsPDF & HTML2Canvas | Formatted offline PDF travel booklets |
 
 ---
 
-## Core Workflows & User Journey
+## Directory Structure
 
-| Workflow | Entry Point | User Actions | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **1. Create Itinerary** | `/trips/new` | Enter destination city, travel date span, optional budget target, and cover image. | Initializes trip record and generates sequential day schedule. |
-| **2. Schedule Activities**| `/trips/:id/builder` | Open category drawers (Stay, Flight, Food, Sights, Adventure) to add items. | Schedule timeline, map markers, and itemized costs update in real time. |
-| **3. Financial Telemetry** | `/trips/:id/budget` | Set target budget and track category breakdown across transport, stay, food, sights. | Live progress gauges, overbudget alerts, and daily spend averages. |
-| **4. Global Analytics** | `/budget` | Review geographic bar chart comparing spending across Ahmedabad, Goa, Paris, etc. | Aggregated cost comparison and searchable cross-trip ledger. |
-| **5. PDF Booklets** | `/trips` or Planner | Click PDF Export trigger on any active trip card. | Multi-page luxury itinerary booklet with cover page and category badges. |
-| **6. Share & Clone** | `/public/trips/:id` | Publish trip publicly and share via WhatsApp, X, or direct link. | Read-only view with 1-click "Copy to My Trips" cloning for other users. |
-| **7. Platform Admin** | `/admin` | Enter master administrator passkey to view platform adoption stats. | Executive dashboard with top destinations, travel day counts, and platform ledger. |
+```
+globetrotter/
+├── assets/                  # Brand assets & project logo
+│   └── logo.png
+├── backend/                 # Python Flask REST API
+│   ├── app.py               # Main Flask server & route handlers
+│   ├── requirements.txt     # Backend dependencies
+│   └── .env.example         # Environment template
+├── frontend/                # React 18 + Vite application
+│   ├── src/
+│   │   ├── components/      # UI components (TripMap, Icons, AIChatDrawer)
+│   │   ├── pages/           # Application views (DayPlanner, AdminAnalytics, etc.)
+│   │   ├── context/         # React Context providers (ToastContext)
+│   │   ├── api.js           # Centralized API client
+│   │   ├── supabaseClient.js# Supabase client configuration
+│   │   └── index.css        # Global design system & theme tokens
+│   ├── public/              # Static public assets (logo.png, favicon.png)
+│   ├── package.json         # Node dependencies & build scripts
+│   └── vite.config.js       # Vite configuration
+└── README.md                # Project documentation
+```
 
 ---
 
-## License
-Built for the Odoo Hackathon. Empowering personalized, intelligent, and collaborative travel planning.
+## Quick Start Guide
+
+### 1. Prerequisites
+- **Node.js**: v18.0 or higher
+- **Python**: v3.9 or higher
+
+### 2. Backend Setup
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start the Flask API server
+python app.py
+```
+*The backend service will be live at `http://localhost:5000`.*
+
+### 3. Frontend Setup
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the Vite development server
+npm run dev
+```
+*The frontend application will be accessible at `http://localhost:5173`.*
+
+---
+
+## Admin Portal Quick Access
+
+- **URL**: `http://localhost:5173/admin`
+- **Administrator Email**: `admin@globetrotter.com`
+- **Master Admin Passkey**: `admin2026`
+- **Evaluator Access**: A 1-Click bypass button is available directly on the admin login screen for evaluators.
+
+---
+
+<div align="center">
+
+**GlobeTrotter** · Developed for the **Odoo x LDCE Hackathon 2026**
+
+</div>
