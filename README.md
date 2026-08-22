@@ -67,41 +67,41 @@
 ## System Architecture
 
 ```mermaid
-graph TD
-    subgraph Frontend ["Frontend (React 18 + Vite)"]
-        UI[Pages & Components]
-        Context[Auth & Toast Context]
-        PDF[Bespoke PDF Engine (jsPDF)]
-        Map[Leaflet / OSM Map Viewer]
-        API_Client[Centralized API Client (api.js)]
+flowchart TD
+    subgraph Frontend["Frontend (React 18 + Vite)"]
+        UI["Pages & Components"]
+        Context["Auth & Toast Context"]
+        PDF["Bespoke PDF Engine (jsPDF)"]
+        Map["Leaflet / OSM Map Viewer"]
+        API_Client["Centralized API Client (api.js)"]
     end
 
-    subgraph Backend ["Backend (Flask REST API)"]
-        Routes[API Route Handlers]
-        VoyageAI[Voyage AI / Groq LLM Engine]
-        Analytics[Budget & Geographic Analytics]
-        Storage[Image & Asset Storage Handler]
+    subgraph Backend["Backend (Flask REST API)"]
+        Routes["API Route Handlers"]
+        VoyageAI["Voyage AI / Groq LLM Engine"]
+        Analytics["Budget & Geographic Analytics"]
+        Storage["Image & Asset Storage Handler"]
     end
 
-    subgraph External ["Data & Cloud Services"]
-        Supabase_DB[(Supabase PostgreSQL)]
-        Supabase_Auth[Supabase Auth (JWT)]
-        Supabase_Storage[Supabase Object Storage]
-        Groq_Cloud[Groq Cloud (LLaMA 3.3 70B)]
-        OSM[OpenStreetMap / Nominatim API]
+    subgraph External["Data & Cloud Services"]
+        Supabase_DB[("Supabase PostgreSQL")]
+        Supabase_Auth["Supabase Auth (JWT)"]
+        Supabase_Storage["Supabase Object Storage"]
+        Groq_Cloud["Groq Cloud (LLaMA 3.3 70B)"]
+        OSM["OpenStreetMap / Nominatim API"]
     end
 
     UI --> API_Client
     UI --> PDF
     UI --> Map
     Map --> OSM
-    API_Client -->|Bearer JWT + JSON| Routes
+    API_Client --> Routes
     Routes --> VoyageAI
     Routes --> Analytics
-    VoyageAI -->|Chat Completion| Groq_Cloud
-    Routes -->|Queries & RLS| Supabase_DB
-    Routes -->|Auth Verification| Supabase_Auth
-    Routes -->|Cover Photos| Supabase_Storage
+    VoyageAI --> Groq_Cloud
+    Routes --> Supabase_DB
+    Routes --> Supabase_Auth
+    Routes --> Supabase_Storage
 ```
 
 ---
