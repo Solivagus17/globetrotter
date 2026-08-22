@@ -8,34 +8,37 @@ export default function Budget() {
 
   useEffect(() => { api.budget(tripId).then(setBudget) }, [tripId])
 
-  if (!budget) return <p>Loading budget...</p>
+  if (!budget) return <div className="page-loading">Loading budget...</div>
 
   const entries = Object.entries(budget.by_city)
   const max = Math.max(1, ...entries.map(([, v]) => v))
 
   return (
     <div className="page">
-      <div className="row-between">
+      <div className="row-between reveal">
         <h2>Budget Breakdown</h2>
-        <Link to={`/trips/${tripId}/builder`} className="btn secondary">Edit Trip</Link>
+        <Link to={`/trips/${tripId}/builder`} className="btn secondary">Day Planner</Link>
       </div>
 
-      <div className="budget-total">
+      <div className="budget-total reveal reveal-d1">
         <span className="muted">Estimated Total</span>
-        <h1>${budget.total.toFixed(2)}</h1>
+        <h1>₹{Math.round(budget.total).toLocaleString('en-IN')}</h1>
       </div>
 
       <div className="budget-bars">
-        {entries.map(([city, cost]) => (
-          <div key={city} className="budget-row">
-            <span className="budget-label">{city}</span>
-            <div className="budget-bar-track">
-              <div className="budget-bar-fill" style={{ width: `${(cost / max) * 100}%` }} />
+        {entries.map(([city, cost], i) => {
+          const delayClass = i < 10 ? `reveal-d${i + 2}` : 'reveal-d10'
+          return (
+            <div key={city} className={`budget-row reveal ${delayClass}`}>
+              <span className="budget-label">{city}</span>
+              <div className="budget-bar-track">
+                <div className="budget-bar-fill" style={{ width: `${(cost / max) * 100}%` }} />
+              </div>
+              <span className="budget-value">₹{Math.round(cost).toLocaleString('en-IN')}</span>
             </div>
-            <span className="budget-value">${cost.toFixed(2)}</span>
-          </div>
-        ))}
-        {entries.length === 0 && <p className="muted">Add stops and activities to see your budget.</p>}
+          )
+        })}
+        {entries.length === 0 && <p className="muted reveal reveal-d2">Add scheduled items with costs in your Day Planner to see your budget breakdown.</p>}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { api } from '../api'
+import { IconImage, IconTrash } from '../components/Icons'
 
 export default function EditTrip() {
   const { tripId } = useParams()
@@ -11,6 +12,7 @@ export default function EditTrip() {
   const [coverUrl, setCoverUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -33,12 +35,12 @@ export default function EditTrip() {
   if (error && !form) {
     return (
       <div className="page">
-        <p className="error">{error}</p>
+        <p className="error" style={{ marginBottom: 16 }}>{error}</p>
         <Link to="/" className="btn secondary">Back to My Trips</Link>
       </div>
     )
   }
-  if (!form) return <div className="page-loading">Loading trip...</div>
+  if (!form) return <div className="page-loading">Loading trip details...</div>
 
   function update(field, value) {
     setForm(f => ({ ...f, [field]: value }))
@@ -83,71 +85,156 @@ export default function EditTrip() {
     }
   }
 
-  return (
-    <div className="page">
-      <div className="form-card wide">
-        <h2>Edit Trip</h2>
+  async function handleDeleteTrip() {
+    if (!window.confirm(`Are you sure you want to delete "${form.name}"? This action cannot be undone.`)) {
+      return
+    }
+    setDeleting(true)
+    setError('')
+    try {
+      await api.deleteTrip(tripId)
+      navigate('/')
+    } catch (err) {
+      setError(err.message)
+      setDeleting(false)
+    }
+  }
 
-        <span className="field-label">Cover photo</span>
-        <div className="cover-picker">
-          <button
-            type="button"
-            className="cover-preview"
-            title="Choose an image"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {coverUrl
-              ? <img src={coverUrl} alt="Cover preview" />
-              : '🖼️'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            style={{ display: 'none' }}
-            onChange={handleFileSelected}
-          />
-          <div className="cover-actions">
-            <button
-              type="button"
-              className="btn secondary small"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? 'Uploading...' : coverUrl ? 'Change photo' : 'Add cover photo'}
-            </button>
-            <span className="muted">JPG, PNG, WebP or GIF · max 5 MB</span>
-            {coverUrl && (
-              <button type="button" className="link-btn danger" onClick={removeCover}>
-                Remove photo
-              </button>
+  return (
+    <div className="page edit-trip-page">
+      {/* Header */}
+      <div className="row-between reveal">
+        <div>
+          <h2>Edit Trip Details</h2>
+          <p className="muted">Update name, travel dates, cover photo, and notes.</p>
+        </div>
+        <div className="header-actions">
+          <Link to={`/trips/${tripId}/builder`} className="btn small">Day Planner</Link>
+          <Link to={`/trips/${tripId}/view`} className="btn secondary small">View Itinerary</Link>
+        </div>
+      </div>
+
+      <div className="edit-trip-content reveal reveal-d1" style={{ maxWidth: 680 }}>
+        {/* Cover Photo Banner Section */}
+        <div className="edit-cover-section">
+          <label>Cover Photo</label>
+          <div className="edit-cover-banner">
+            {coverUrl ? (
+              <div className="cover-banner-preview">
+                <img src={coverUrl} alt="Trip cover" />
+                <div className="cover-banner-overlay">
+                  <button
+                    type="button"
+                    className="btn secondary small"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    <IconImage size={14} /> {uploading ? 'Uploading...' : 'Change Cover'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn secondary small danger-btn"
+                    onClick={removeCover}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="cover-banner-empty"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="cover-empty-icon">
+                  <IconImage size={32} />
+                </div>
+                <span className="cover-empty-text">
+                  {uploading ? 'Uploading photo...' : 'Click to add a cover photo'}
+                </span>
+                <span className="cover-empty-subtext">JPG, PNG, WebP or GIF · max 5 MB</span>
+              </div>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: 'none' }}
+              onChange={handleFileSelected}
+            />
           </div>
         </div>
 
-        <form onSubmit={handleSave}>
+        {/* Main Trip Form */}
+        <form onSubmit={handleSave} className="edit-trip-form">
           <label>Trip Name
-            <input value={form.name} onChange={e => update('name', e.target.value)} required placeholder="Summer in Europe" />
+            <input
+              value={form.name}
+              onChange={e => update('name', e.target.value)}
+              required
+              placeholder="e.g. Summer in Europe"
+            />
           </label>
+
           <div className="row">
             <label>Start Date
-              <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} required />
+              <input
+                type="date"
+                value={form.start_date}
+                onChange={e => update('start_date', e.target.value)}
+                required
+              />
             </label>
             <label>End Date
-              <input type="date" value={form.end_date} min={form.start_date} onChange={e => update('end_date', e.target.value)} required />
+              <input
+                type="date"
+                value={form.end_date}
+                min={form.start_date}
+                onChange={e => update('end_date', e.target.value)}
+                required
+              />
             </label>
           </div>
-          <label>Description
-            <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} placeholder="Two weeks island-hopping..." />
+
+          <label>Description & Notes
+            <textarea
+              value={form.description}
+              onChange={e => update('description', e.target.value)}
+              rows={5}
+              placeholder="Add key travel details, flight info, packing list reminders, or general trip notes..."
+            />
           </label>
-          {error && <p className="error">{error}</p>}
-          <div className="form-actions">
-            <Link to="/" className="btn secondary">Cancel</Link>
-            <button type="submit" className="btn" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
+
+          {error && <p className="error" style={{ marginBottom: 16 }}>{error}</p>}
+
+          <div className="edit-form-actions">
+            <button
+              type="submit"
+              className="btn"
+              disabled={saving}
+            >
+              {saving ? 'Saving Changes...' : 'Save Changes'}
             </button>
+            <Link to="/" className="btn secondary">Cancel</Link>
           </div>
         </form>
+
+        {/* Danger Zone: Delete Trip */}
+        <div className="danger-zone-section reveal reveal-d2">
+          <div className="danger-zone-header">
+            <div>
+              <h4>Delete This Trip</h4>
+              <p className="muted">Permanently delete this trip and all its stops, activities, and budget items.</p>
+            </div>
+            <button
+              type="button"
+              className="btn secondary small danger-btn"
+              onClick={handleDeleteTrip}
+              disabled={deleting}
+            >
+              <IconTrash size={14} /> {deleting ? 'Deleting...' : 'Delete Trip'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
