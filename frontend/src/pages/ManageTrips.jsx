@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { useToast } from '../context/ToastContext'
 import {
   IconMap,
   IconPlus,
@@ -28,6 +29,19 @@ function tripStatus(start, end) {
   return 'active'
 }
 
+function getDaysUntil(startDate) {
+  if (!startDate) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const target = new Date(startDate)
+  target.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((target - now) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return null
+  if (diffDays === 0) return 'Starts today'
+  if (diffDays === 1) return 'Starts tomorrow'
+  return `in ${diffDays} days`
+}
+
 const STATUS_BADGE = {
   draft: { label: 'Draft', class: 'status-draft' },
   upcoming: { label: 'Upcoming', class: 'status-upcoming' },
@@ -39,38 +53,36 @@ export default function ManageTrips() {
   const [trips, setTrips] = useState([])
   const [tripDaysMap, setTripDaysMap] = useState({})
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState('grid') // 'grid' | 'table'
-  const [actionSuccess, setActionSuccess] = useState('')
   const navigate = useNavigate()
+  const toast = useToast()
+
+  async function loadTrips() {
+    try {
+      const data = await api.listTrips() || []
+      setTrips(data)
+
+      const daysMap = {}
+      for (const t of data) {
+        try {
+          const res = await api.getTripDays(t.id)
+          daysMap[t.id] = res.days || []
+        } catch (e) {
+          daysMap[t.id] = []
+        }
+      }
+      setTripDaysMap(daysMap)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load trips')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function loadTrips() {
-      try {
-        const data = await api.listTrips() || []
-        setTrips(data)
-
-        // Load day items for each trip to compute accurate budgets and activity counts
-        const daysMap = {}
-        for (const t of data) {
-          try {
-            const res = await api.getTripDays(t.id)
-            daysMap[t.id] = res.days || []
-          } catch (e) {
-            daysMap[t.id] = []
-          }
-        }
-        setTripDaysMap(daysMap)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadTrips()
   }, [])
 
@@ -81,10 +93,20 @@ export default function ManageTrips() {
     try {
       await api.deleteTrip(tripId)
       setTrips(prev => prev.filter(t => t.id !== tripId))
-      setActionSuccess(`Deleted "${tripName}"`)
-      setTimeout(() => setActionSuccess(''), 3000)
+      toast.success(`Deleted "${tripName}"`)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
+    }
+  }
+
+  async function handleDuplicateTrip(e, tripId) {
+    e.stopPropagation()
+    try {
+      const cloned = await api.duplicateTrip(tripId)
+      setTrips(prev => [cloned, ...prev])
+      toast.success('✨ Trip duplicated successfully!')
+    } catch (err) {
+      toast.error(err.message || 'Failed to duplicate trip')
     }
   }
 
@@ -93,10 +115,9 @@ export default function ManageTrips() {
     try {
       const days = tripDaysMap[trip.id] || []
       generateItineraryPDF(trip, days)
-      setActionSuccess(`Exported PDF for ${trip.name}!`)
-      setTimeout(() => setActionSuccess(''), 3000)
+      toast.success(`Exported PDF for ${trip.name}!`)
     } catch (err) {
-      setError('Could not export PDF. Please open the trip planner to export.')
+      toast.error('Could not export PDF. Please open the trip planner to export.')
     }
   }
 
@@ -151,7 +172,23 @@ export default function ManageTrips() {
     return 0
   })
 
-  if (loading) return <div className="page-loading">Loading your trip collection...</div>
+  if (loading) {
+    return (
+      <div className="page manage-trips-page">
+        <div className="dashboard-stats-grid" style={{ marginBottom: 24 }}>
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+        </div>
+        <div className="manage-trips-grid">
+          <div className="skeleton" style={{ height: 280, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 280, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 280, borderRadius: 16 }} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="page manage-trips-page">
@@ -170,18 +207,6 @@ export default function ManageTrips() {
           </Link>
         </div>
       </div>
-
-      {actionSuccess && (
-        <div className="profile-alert-success reveal">
-          <span>✓ {actionSuccess}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="profile-alert-error reveal">
-          <span>{error}</span>
-        </div>
-      )}
 
       {/* Summary KPI Stats Bar */}
       <div className="dashboard-stats-grid reveal reveal-d1" style={{ marginBottom: 24 }}>
@@ -307,87 +332,115 @@ export default function ManageTrips() {
           <p className="muted">
             {searchQuery
               ? `No itineraries found matching "${searchQuery}".`
-              : 'Start by planning a trip with our smart TripAdvisor-style day planner.'}
+              : 'Start by planning your first multi-day journey.'}
           </p>
           <Link to="/trips/new" className="btn">+ Plan New Trip</Link>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="trips-grid reveal reveal-d3">
+        <div className="manage-trips-grid reveal reveal-d3">
           {sortedTrips.map(t => {
             const stKey = tripStatus(t.start_date, t.end_date)
             const stBadge = STATUS_BADGE[stKey]
+            const countdown = stKey === 'upcoming' ? getDaysUntil(t.start_date) : null
             const days = tripDaysMap[t.id] || []
             const duration = Math.max(days.length, tripDurationDays(t.start_date, t.end_date) || 1)
+            const itemCount = days.reduce((s, d) => s + (d.items || []).length, 0)
             const tripCost = days.reduce((sum, d) => sum + (d.items || []).reduce((s, it) => s + (parseFloat(it.cost) || 0), 0), 0)
             const destination = t.destination_city || t.description || 'Custom Destination'
 
             return (
               <div
                 key={t.id}
-                className="trip-card"
+                className="manage-trip-card"
                 onClick={() => navigate(`/trips/${t.id}/builder`)}
               >
-                <div className="trip-card-header">
-                  <div className="row-between">
+                {t.cover_photo_url && (
+                  <div className="manage-card-cover">
+                    <img src={t.cover_photo_url} alt={t.name} />
+                  </div>
+                )}
+
+                <div className="manage-card-content">
+                  {/* Card Header Top */}
+                  <div className="manage-card-top">
                     <span className="destination-badge">
                       <IconPin size={11} /> {destination}
                     </span>
-                    <span className={`status-pill ${stBadge.class}`}>
-                      {stBadge.label}
-                    </span>
-                  </div>
-                  <h4 className="trip-card-title">{t.name}</h4>
-                  <p className="trip-card-desc">{t.description || 'Custom travel itinerary.'}</p>
-                </div>
-
-                <div className="trip-card-body">
-                  <div className="trip-card-stat">
-                    <span className="trip-stat-label">DATES & SPAN</span>
-                    <span className="trip-stat-val">
-                      {t.start_date ? `${t.start_date} → ${t.end_date || ''}` : 'Flexible dates'}
-                    </span>
+                    <div className="row-center" style={{ gap: 6 }}>
+                      <span className={`status-pill ${stBadge.class}`}>{stBadge.label}</span>
+                      {countdown && (
+                        <span className="countdown-pill" title={`Starts in ${countdown}`}>
+                          ⏳ {countdown}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="trip-card-stat">
-                    <span className="trip-stat-label">DURATION & ITEMS</span>
-                    <span className="trip-stat-val">
-                      {duration} {duration === 1 ? 'Day' : 'Days'} · {days.reduce((s, d) => s + (d.items || []).length, 0)} items
-                    </span>
+                  {/* Trip Title & Description */}
+                  <div className="manage-card-header-info">
+                    <h3 className="manage-card-title">{t.name}</h3>
+                    {t.description && <p className="manage-card-desc">{t.description}</p>}
                   </div>
 
-                  <div className="trip-card-stat">
-                    <span className="trip-stat-label">ESTIMATED BUDGET</span>
-                    <span className="trip-stat-val trip-cost-highlight">
-                      ₹{Math.round(tripCost).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
+                  {/* Clean Metric Rows with Labels & Values */}
+                  <div className="manage-card-details">
+                    <div className="manage-detail-row">
+                      <span className="manage-detail-label">Dates & Schedule</span>
+                      <strong className="manage-detail-val">
+                        {t.start_date ? `${t.start_date} → ${t.end_date || ''}` : 'Flexible dates'}
+                      </strong>
+                    </div>
 
-                <div className="trip-card-footer" onClick={e => e.stopPropagation()}>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <Link to={`/trips/${t.id}/builder`} className="btn small">
-                      Open Planner
-                    </Link>
+                    <div className="manage-detail-row">
+                      <span className="manage-detail-label">Duration & Items</span>
+                      <strong className="manage-detail-val">
+                        {duration} {duration === 1 ? 'Day' : 'Days'} · {itemCount} {itemCount === 1 ? 'activity' : 'activities'}
+                      </strong>
+                    </div>
+
+                    <div className="manage-detail-row">
+                      <span className="manage-detail-label">Estimated Budget</span>
+                      <strong className="manage-detail-val manage-cost-val">
+                        {tripCost > 0 ? `₹${Math.round(tripCost).toLocaleString('en-IN')}` : '₹0'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Footer */}
+                  <div className="manage-card-footer" onClick={e => e.stopPropagation()}>
+                    <div className="manage-card-actions-left">
+                      <Link to={`/trips/${t.id}/builder`} className="btn small manage-open-btn">
+                        Open Planner
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn secondary small manage-icon-btn"
+                        onClick={(e) => handleExportPDF(e, t)}
+                        title="Export PDF Itinerary"
+                      >
+                        <IconDownload size={13} />
+                      </button>
+                      <Link to={`/trips/${t.id}/edit`} className="btn secondary small manage-icon-btn" title="Edit Trip">
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn secondary small manage-icon-btn"
+                        onClick={(e) => handleDuplicateTrip(e, t.id)}
+                        title="Duplicate Trip"
+                      >
+                        📋
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      className="btn secondary small"
-                      onClick={(e) => handleExportPDF(e, t)}
-                      title="Export PDF Itinerary"
+                      className="manage-delete-btn"
+                      onClick={(e) => handleDeleteTrip(e, t.id, t.name)}
+                      title="Delete Trip"
                     >
-                      <IconDownload size={13} />
+                      <IconTrash size={14} />
                     </button>
-                    <Link to={`/trips/${t.id}/edit`} className="btn secondary small" title="Edit Trip">
-                      Edit
-                    </Link>
                   </div>
-                  <button
-                    type="button"
-                    className="trip-delete-btn"
-                    onClick={(e) => handleDeleteTrip(e, t.id, t.name)}
-                    title="Delete Trip"
-                  >
-                    <IconTrash size={14} />
-                  </button>
                 </div>
               </div>
             )
@@ -419,9 +472,9 @@ export default function ManageTrips() {
                 return (
                   <tr key={t.id} onClick={() => navigate(`/trips/${t.id}/builder`)} className="manage-table-row">
                     <td>
-                      <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>{t.name}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px' }}>{t.name}</div>
                       <div className="muted" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <IconPin size={11} /> {destination}
+                        <IconPin size={11} color="var(--primary-dark)" /> {destination}
                       </div>
                     </td>
                     <td>
@@ -436,7 +489,9 @@ export default function ManageTrips() {
                       <span style={{ fontWeight: 600 }}>{duration} Days</span>
                     </td>
                     <td>
-                      <strong style={{ color: 'var(--primary-dark)' }}>₹{Math.round(tripCost).toLocaleString('en-IN')}</strong>
+                      <strong style={{ color: 'var(--primary-dark)', fontSize: '14.5px' }}>
+                        ₹{Math.round(tripCost).toLocaleString('en-IN')}
+                      </strong>
                     </td>
                     <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
@@ -457,7 +512,16 @@ export default function ManageTrips() {
                         </Link>
                         <button
                           type="button"
-                          className="trip-delete-btn"
+                          className="btn secondary small"
+                          style={{ padding: '4px 8px' }}
+                          onClick={(e) => handleDuplicateTrip(e, t.id)}
+                          title="Duplicate"
+                        >
+                          📋
+                        </button>
+                        <button
+                          type="button"
+                          className="manage-delete-btn"
                           onClick={(e) => handleDeleteTrip(e, t.id, t.name)}
                           title="Delete"
                         >

@@ -16,6 +16,8 @@ import GlobalBudget from './pages/GlobalBudget'
 import SavedPlaces from './pages/SavedPlaces'
 import Profile from './pages/Profile'
 import PublicTrip from './pages/PublicTrip'
+import AdminAnalytics from './pages/AdminAnalytics'
+import LandingPage from './pages/LandingPage'
 import { ToastProvider } from './context/ToastContext'
 import {
   IconLayoutDashboard,
@@ -29,6 +31,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconLogOut,
+  IconLandmark,
 } from './components/Icons'
 
 function useAuth() {
@@ -50,6 +53,13 @@ function RequireAuth({ children }) {
   if (session === undefined) return <p style={{ padding: 24 }}>Loading...</p>
   if (!session) return <Navigate to="/login" replace />
   return children
+}
+
+function HomeRoute() {
+  const session = useAuth()
+  if (session === undefined) return <p style={{ padding: 24 }}>Loading...</p>
+  if (session) return <Dashboard />
+  return <LandingPage />
 }
 
 function Sidebar({ isCollapsed, onToggleCollapse }) {
@@ -127,6 +137,10 @@ function Sidebar({ isCollapsed, onToggleCollapse }) {
             <IconCompass size={18} />
             {!isCollapsed && <span>Plan New Trip</span>}
           </NavLink>
+          <NavLink to="/admin" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Platform Analytics">
+            <IconLandmark size={18} />
+            {!isCollapsed && <span>Platform Analytics</span>}
+          </NavLink>
           <NavLink to="/profile" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Profile & Settings">
             <IconUser size={18} />
             {!isCollapsed && <span>Profile & Settings</span>}
@@ -176,9 +190,12 @@ export default function App() {
         <Sidebar isCollapsed={isCollapsed} onToggleCollapse={handleToggleCollapse} />
         <main className="main-area">
           <Routes>
+            <Route path="/" element={<HomeRoute />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/welcome" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/public/trips/:tripId" element={<PublicTrip />} />
-            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/trips" element={<RequireAuth><ManageTrips /></RequireAuth>} />
             <Route path="/ai" element={<RequireAuth><VoyageAI /></RequireAuth>} />
             <Route path="/voyage-ai" element={<RequireAuth><VoyageAI /></RequireAuth>} />
@@ -193,6 +210,7 @@ export default function App() {
             <Route path="/trips/:tripId/planner" element={<RequireAuth><DayPlanner /></RequireAuth>} />
             <Route path="/trips/:tripId/view" element={<RequireAuth><ItineraryView /></RequireAuth>} />
             <Route path="/trips/:tripId/budget" element={<RequireAuth><Budget /></RequireAuth>} />
+            <Route path="/admin" element={<RequireAuth><AdminAnalytics /></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

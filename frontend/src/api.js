@@ -90,6 +90,9 @@ export const api = {
   chat: (messages, tripId = null) =>
     request('/api/chat', { method: 'POST', body: JSON.stringify({ messages, trip_id: tripId }) }),
 
+  // Admin & Platform Analytics (Feature 13)
+  getAdminAnalytics: () => request('/api/admin/analytics'),
+
   // Legacy catalog
   searchCities: (q) => request(`/api/catalog/cities?q=${encodeURIComponent(q || '')}`),
   searchActivities: (city) => request(`/api/catalog/activities?city=${encodeURIComponent(city || '')}`),

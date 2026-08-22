@@ -1268,5 +1268,143 @@ Key Guidelines:
     return jsonify({"error": f"AI Assistant unavailable: {last_error}"}), 500
 
 
+# ---------------------------------------------------------------------------
+# Admin & Platform Analytics (Feature 13)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/analytics", methods=["GET"])
+def get_admin_analytics():
+    """Admin-level platform usage, user adoption, popular destinations, and financial statistics."""
+    try:
+        # Fetch all trips across platform using service role
+        trips_res = supabase.table("trips").select("*").order("created_at", desc=True).execute()
+        all_trips = trips_res.data or []
+
+        # Fetch all day items
+        items_res = supabase.table("day_items").select("*").execute()
+        all_items = items_res.data or []
+
+        # Trip Days Map
+        items_by_trip = {}
+        for it in all_items:
+            t_id = it.get("trip_id")
+            if t_id:
+                items_by_trip.setdefault(t_id, []).append(it)
+
+        # Aggregate Metrics
+        total_trips = len(all_trips)
+        public_trips_count = sum(1 for t in all_trips if t.get("is_public"))
+        private_trips_count = total_trips - public_trips_count
+        
+        total_activities = len(all_items)
+        total_spend = sum(float(it.get("cost") or 0) for it in all_items)
+        
+        # Calculate Total Travel Days
+        total_travel_days = 0
+        for t in all_trips:
+            s_date = t.get("start_date")
+            e_date = t.get("end_date")
+            if s_date and e_date:
+                try:
+                    d1 = datetime.strptime(s_date, "%Y-%m-%d")
+                    d2 = datetime.strptime(e_date, "%Y-%m-%d")
+                    total_travel_days += max(1, (d2 - d1).days + 1)
+                except Exception:
+                    total_travel_days += 1
+            else:
+                total_travel_days += 1
+
+        avg_trip_spend = (total_spend / total_trips) if total_trips > 0 else 0
+        avg_trip_days = (total_travel_days / total_trips) if total_trips > 0 else 0
+
+        # Destination City Frequency & Spend
+        dest_stats = {}
+        for t in all_trips:
+            city = (t.get("destination_city") or t.get("name") or "Unspecified").strip().title()
+            t_items = items_by_trip.get(t.get("id"), [])
+            t_spend = sum(float(it.get("cost") or 0) for it in t_items)
+            
+            if city not in dest_stats:
+                dest_stats[city] = {"city": city, "trip_count": 0, "total_spend": 0, "activities_count": 0}
+            dest_stats[city]["trip_count"] += 1
+            dest_stats[city]["total_spend"] += t_spend
+            dest_stats[city]["activities_count"] += len(t_items)
+
+        sorted_destinations = sorted(dest_stats.values(), key=lambda x: x["trip_count"], reverse=True)
+        top_destinations = []
+        for d in sorted_destinations[:8]:
+            pct = round((d["trip_count"] / total_trips) * 100, 1) if total_trips > 0 else 0
+            top_destinations.append({
+                "city": d["city"],
+                "trip_count": d["trip_count"],
+                "total_spend": round(d["total_spend"], 2),
+                "activities_count": d["activities_count"],
+                "percentage": pct
+            })
+
+        # Category Breakdown
+        categories = {
+            "sightseeing": 0,
+            "food": 0,
+            "stay": 0,
+            "flight": 0,
+            "adventure": 0,
+            "culture": 0,
+            "other": 0
+        }
+        category_spend = {k: 0.0 for k in categories}
+
+        for it in all_items:
+            cat = (it.get("category") or "other").lower().strip()
+            if cat in ("place", "monument"): cat = "sightseeing"
+            elif cat in ("dining", "restaurant"): cat = "food"
+            elif cat in ("hotel",): cat = "stay"
+            elif cat in ("transit", "transport"): cat = "flight"
+            
+            if cat not in categories: cat = "other"
+
+            categories[cat] += 1
+            category_spend[cat] += float(it.get("cost") or 0)
+
+        # Recent Platform Itineraries Table
+        recent_trips = []
+        for t in all_trips[:12]:
+            t_items = items_by_trip.get(t.get("id"), [])
+            t_spend = sum(float(it.get("cost") or 0) for it in t_items)
+            recent_trips.append({
+                "id": t.get("id"),
+                "name": t.get("name"),
+                "destination": t.get("destination_city") or "Worldwide",
+                "start_date": t.get("start_date"),
+                "end_date": t.get("end_date"),
+                "is_public": bool(t.get("is_public")),
+                "items_count": len(t_items),
+                "total_spend": round(t_spend, 2),
+                "budget_target": t.get("budget_target"),
+                "created_at": t.get("created_at")
+            })
+
+        return jsonify({
+            "metrics": {
+                "total_trips": total_trips,
+                "public_trips_count": public_trips_count,
+                "private_trips_count": private_trips_count,
+                "total_travel_days": total_travel_days,
+                "total_activities": total_activities,
+                "total_spend": round(total_spend, 2),
+                "avg_trip_spend": round(avg_trip_spend, 2),
+                "avg_trip_days": round(avg_trip_days, 1),
+            },
+            "top_destinations": top_destinations,
+            "category_distribution": categories,
+            "category_spend": {k: round(v, 2) for k, v in category_spend.items()},
+            "recent_trips": recent_trips
+        })
+    except Exception as e:
+        print(f"Error in admin analytics: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+

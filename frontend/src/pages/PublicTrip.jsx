@@ -166,8 +166,30 @@ export default function PublicTrip() {
             onClick={handleCopyShareLink}
             title="Copy shareable link"
           >
-            📋 Share Link
+            📋 Copy Link
           </button>
+
+          <a
+            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out this travel itinerary for ${trip.name} on GlobeTrotter: ${window.location.href}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn secondary small"
+            style={{ textDecoration: 'none' }}
+            title="Share on WhatsApp"
+          >
+            💬 WhatsApp
+          </a>
+
+          <a
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Exploring this awesome travel plan for ${trip.name} on GlobeTrotter! 🌍✈️`)}&url=${encodeURIComponent(window.location.href)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn secondary small"
+            style={{ textDecoration: 'none' }}
+            title="Share on X (Twitter)"
+          >
+            𝕏 Share
+          </a>
 
           <button
             type="button"

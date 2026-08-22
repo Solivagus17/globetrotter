@@ -239,6 +239,17 @@ export default function Profile() {
                   <option value="miles">Miles (mi)</option>
                 </select>
               </label>
+
+              <label>Language Preference
+                <select defaultValue="en-US">
+                  <option value="en-US">English (US)</option>
+                  <option value="en-GB">English (UK)</option>
+                  <option value="hi-IN">Hindi (हिंदी)</option>
+                  <option value="fr-FR">French (Français)</option>
+                  <option value="es-ES">Spanish (Español)</option>
+                  <option value="de-DE">German (Deutsch)</option>
+                </select>
+              </label>
             </div>
 
             <div className="profile-form-footer">
@@ -251,6 +262,27 @@ export default function Profile() {
               </button>
             </div>
           </form>
+
+          {/* Danger Zone: Delete Account */}
+          <div className="profile-settings-form" style={{ marginTop: 28, borderColor: 'rgba(220, 38, 38, 0.3)', background: '#FEF2F2' }}>
+            <h4 style={{ color: '#DC2626', marginBottom: 6 }}>Account Danger Zone</h4>
+            <p className="muted" style={{ fontSize: '13px', marginBottom: 14 }}>
+              Permanently remove your traveler profile, saved itineraries, and preferences from GlobeTrotter.
+            </p>
+            <button
+              type="button"
+              className="btn secondary small"
+              style={{ color: '#DC2626', borderColor: '#DC2626', background: '#FFFFFF' }}
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to sign out and clear your account session?')) {
+                  await supabase.auth.signOut()
+                  window.location.href = '/login'
+                }
+              }}
+            >
+              Delete / Reset Account Session
+            </button>
+          </div>
         </div>
       </div>
     </div>

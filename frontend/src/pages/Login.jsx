@@ -5,21 +5,42 @@ import { supabase } from '../supabaseClient'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [mode, setMode] = useState('login') // 'login' | 'signup' | 'forgot'
   const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setSuccessMsg('')
     setLoading(true)
+
+    if (mode === 'forgot') {
+      try {
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/login`,
+        })
+        if (resetErr) throw resetErr
+        setSuccessMsg('Password reset instructions have been sent to your email!')
+      } catch (err) {
+        setError(err.message || 'Failed to send reset email')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
     const fn = mode === 'login'
-      ? supabase.auth.signInWithPassword({ email, password })
-      : supabase.auth.signUp({ email, password })
-    const { error } = await fn
+      ? supabase.auth.signInWithPassword({ email: email.trim(), password })
+      : supabase.auth.signUp({ email: email.trim(), password })
+    const { error: authErr } = await fn
     setLoading(false)
-    if (error) { setError(error.message); return }
+    if (authErr) {
+      setError(authErr.message)
+      return
+    }
     navigate('/')
   }
 
@@ -51,40 +72,132 @@ export default function Login() {
 
       <div className="auth-form-side">
         <div className="auth-card">
-          <h2>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
+          <h2>
+            {mode === 'login' && 'Welcome back'}
+            {mode === 'signup' && 'Create your account'}
+            {mode === 'forgot' && 'Reset your password'}
+          </h2>
           <p className="subtitle">
-            {mode === 'login' ? 'Log in to see your trips.' : 'Start planning in under a minute.'}
+            {mode === 'login' && 'Log in to see your trips.'}
+            {mode === 'signup' && 'Start planning in under a minute.'}
+            {mode === 'forgot' && 'Enter your account email to receive a secure recovery link.'}
           </p>
 
           <form onSubmit={handleSubmit}>
             <label>Email
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
             </label>
-            <label>Password
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" />
-            </label>
-            {error && <p className="error">{error}</p>}
+
+            {mode !== 'forgot' && (
+              <div style={{ marginBottom: 16 }}>
+                <div className="row-between" style={{ marginBottom: 4 }}>
+                  <label style={{ margin: 0 }}>Password</label>
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      className="link-btn"
+                      style={{ fontSize: '12px' }}
+                      onClick={() => {
+                        setMode('forgot')
+                        setError('')
+                        setSuccessMsg('')
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                />
+              </div>
+            )}
+
+            {error && <p className="error" style={{ marginBottom: 12 }}>{error}</p>}
+            {successMsg && (
+              <div className="profile-alert-success" style={{ marginBottom: 16 }}>
+                <span>✓ {successMsg}</span>
+              </div>
+            )}
+
             <button type="submit" className="btn" style={{ width: '100%' }} disabled={loading}>
-              {loading ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Sign Up'}
+              {loading
+                ? 'Please wait...'
+                : mode === 'login'
+                ? 'Log In'
+                : mode === 'signup'
+                ? 'Sign Up'
+                : 'Send Password Reset Link'}
             </button>
           </form>
 
-          <div className="divider">or</div>
-          <button type="button" className="btn secondary google-btn" onClick={handleGoogleSignIn}>
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z" />
-              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z" />
-              <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z" />
-              <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z" />
-            </svg>
-            Continue with Google
-          </button>
+          {mode !== 'forgot' && (
+            <>
+              <div className="divider">or</div>
+              <button type="button" className="btn secondary google-btn" onClick={handleGoogleSignIn}>
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z" />
+                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z" />
+                  <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z" />
+                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z" />
+                </svg>
+                Continue with Google
+              </button>
+            </>
+          )}
 
-          <p className="auth-switch">
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <button className="link-btn" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-              {mode === 'login' ? 'Sign up' : 'Log in'}
-            </button>
+          <p className="auth-switch" style={{ marginTop: 20 }}>
+            {mode === 'forgot' ? (
+              <button
+                className="link-btn"
+                onClick={() => {
+                  setMode('login')
+                  setError('')
+                  setSuccessMsg('')
+                }}
+              >
+                ← Back to Log in
+              </button>
+            ) : mode === 'login' ? (
+              <>
+                Don't have an account?{' '}
+                <button
+                  className="link-btn"
+                  onClick={() => {
+                    setMode('signup')
+                    setError('')
+                    setSuccessMsg('')
+                  }}
+                >
+                  Sign up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  className="link-btn"
+                  onClick={() => {
+                    setMode('login')
+                    setError('')
+                    setSuccessMsg('')
+                  }}
+                >
+                  Log in
+                </button>
+              </>
+            )}
           </p>
         </div>
       </div>
