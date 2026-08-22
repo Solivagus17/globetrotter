@@ -28,16 +28,12 @@
 
 ## Team Members & Hackathon Attribution
 
-> **Event**: Odoo x LDCE Hackathon 2026  
-> **Project**: GlobeTrotter — Multi-City Travel Planner & AI Concierge  
-> **Track**: Full-Stack Web Development & AI Integration
+> **Event**: Built for Odoo x LDCE Hackathon 2026
 
-| Team Member | Role & Contributions |
-| :--- | :--- |
-| **Kavin Jindal** | Full-Stack Architecture, Real-Time Leaflet GIS Mapping & UI Design Systems |
-| **Sarthakk Anjariya** | Backend REST Services, Supabase PostgreSQL Engine & Data Modeling |
-| **Pooja Teotia** | Voyage AI Concierge Integration, Groq LLM Pipelines & Prompt Engineering |
-| **Ishita Mehta** | Financial Telemetry, Budget Optimization Engines & PDF Booklet Generation |
+- **Kavin Jindal**
+- **Sarthakk Anjariya**
+- **Pooja Teotia**
+- **Ishita Mehta**
 
 ---
 
