@@ -140,6 +140,14 @@ h4 { font-weight: 600; }
   border-right: 1px solid var(--border-soft);
   padding: 28px 16px;
   z-index: 50;
+  transition: width 220ms var(--ease-out), padding 220ms var(--ease-out);
+}
+
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .brand {
@@ -148,20 +156,56 @@ h4 { font-weight: 600; }
   font-size: 22px;
   color: var(--text);
   text-decoration: none;
-  padding-left: 8px;
+  padding-left: 4px;
   display: flex; align-items: center; gap: 8px;
+  white-space: nowrap;
 }
 .brand::before { content: '● '; color: var(--primary); font-size: 14px; }
 
-.sidebar-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 32px; }
+.brand-dot-logo {
+  font-weight: 900;
+  font-size: 16px;
+  color: #211C10;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(245, 180, 41, 0.3);
+}
+
+.sidebar-collapse-toggle-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 180ms ease;
+  flex-shrink: 0;
+}
+.sidebar-collapse-toggle-btn:hover {
+  background: var(--primary-light);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; margin-top: 28px; }
 
 .sidebar-link {
   padding: 11px 14px; border-radius: 12px; text-decoration: none;
   color: var(--muted); font-weight: 500; font-size: 14px;
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 12px;
   transition: all 200ms var(--ease-out);
   border: 1px solid transparent;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 .sidebar-link:hover {
   color: var(--text);
@@ -177,13 +221,66 @@ h4 { font-weight: 600; }
 }
 
 .sidebar-bottom { display: flex; flex-direction: column; gap: 10px; }
-.sidebar-user {
-  margin: 0 0 2px 6px; font-size: 12px; color: var(--muted);
+.sidebar-user-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 10px; text-decoration: none;
+  transition: background 150ms ease;
+}
+.sidebar-user-card:hover {
+  background: var(--bg-warm);
+}
+.sidebar-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #211C10; font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sidebar-user-text {
+  display: flex; flex-direction: column; min-width: 0;
+}
+.sidebar-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-weight: 400;
+}
+.sidebar-email {
+  font-size: 11px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.main-area { flex: 1; min-width: 0; }
+/* Collapsed Sidebar */
+.sidebar.collapsed {
+  width: 76px;
+  padding: 24px 10px;
+}
+.sidebar.collapsed .sidebar-brand-row {
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+.sidebar.collapsed .brand::before {
+  display: none;
+}
+.sidebar.collapsed .brand {
+  padding-left: 0;
+}
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 12px 0;
+  border-radius: 12px;
+}
+.sidebar.collapsed .sidebar-user-card {
+  justify-content: center;
+  padding: 4px;
+}
+.sidebar.collapsed .logout-btn {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-area { flex: 1; min-width: 0; transition: all 220ms var(--ease-out); }
 
 /* ---------- Page Container ---------- */
 .page {
@@ -2949,9 +3046,372 @@ input:focus, textarea:focus, select:focus {
   flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
-  .dashboard-main-split {
+/* ================================================================
+   Saves & For You Place Cards Grid Layout
+   ================================================================ */
+.saves-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.save-card {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.save-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.save-card-img {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: var(--bg-warm);
+  overflow: hidden;
+}
+.save-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.save-category-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(17, 24, 39, 0.8);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+  z-index: 1;
+}
+
+.save-card-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+}
+.save-card-body h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.save-city-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.save-cost-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.save-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.save-card-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-day-select {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.save-day-select:focus {
+  border-color: var(--primary);
+}
+
+.planner-foryou-tab,
+.planner-saves-tab {
+  padding-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .saves-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ================================================================
+   Flight & Transit Specific Ticket Styling
+   ================================================================ */
+.flight-ticket-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.03), rgba(147, 51, 234, 0.03));
+  border: 1.5px dashed rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flight-route-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+.flight-point {
+  display: flex;
+  flex-direction: column;
+}
+
+.flight-point .time {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.flight-point .city {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.flight-arrow-sep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  justify-content: center;
+}
+.flight-arrow-line {
+  height: 1px;
+  background: rgba(59, 130, 246, 0.3);
+  flex: 1;
+}
+
+.flight-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.flight-status-badge.booked {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.flight-status-badge.unbooked {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.flight-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.flight-pnr-pill {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-warm);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* ================================================================
+   Itinerary Interactive Calendar View
+   ================================================================ */
+.planner-calendar-tab {
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.calendar-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow);
+}
+
+.calendar-month-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.calendar-weekday-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 0;
+}
+
+.calendar-day-cell {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  min-height: 120px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 180ms ease;
+  position: relative;
+}
+.calendar-day-cell.other-month {
+  opacity: 0.35;
+  background: var(--bg);
+}
+.calendar-day-cell.trip-day {
+  border: 1.5px solid var(--primary);
+  background: linear-gradient(180deg, var(--card) 0%, rgba(254, 240, 199, 0.25) 100%);
+  box-shadow: 0 4px 16px rgba(245, 180, 41, 0.1);
+  cursor: pointer;
+}
+.calendar-day-cell.trip-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 180, 41, 0.2);
+}
+
+.calendar-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-date-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.calendar-day-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--primary);
+  color: #211C10;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.calendar-city-tag {
+  font-size: 11px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 90px;
+}
+
+.calendar-mini-pill {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.calendar-mini-pill.flight { border-left: 3px solid #2563eb; }
+.calendar-mini-pill.food { border-left: 3px solid #e67e22; }
+.calendar-mini-pill.stay { border-left: 3px solid #2980b9; }
+.calendar-mini-pill.sightseeing { border-left: 3px solid #27ae60; }
+.calendar-mini-pill.place { border-left: 3px solid #27ae60; }
+
+@media (max-width: 900px) {
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .calendar-day-cell {
+    min-height: 80px;
+    padding: 6px;
   }
 }
 
@@ -2964,3 +3424,92 @@ input:focus, textarea:focus, select:focus {
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 ::selection { background: rgba(245, 180, 41, 0.25); color: var(--text); }
+
+/* ================================================================
+   Print & PDF Export Styles
+   ================================================================ */
+@media print {
+  /* Hide UI navigation, sidebar, and interactive controls */
+  .sidebar,
+  .top-nav,
+  .header-actions,
+  .quick-add-section,
+  .planner-top-tabs,
+  .day-collapse-btn,
+  .day-city-edit-box,
+  .day-item-delete-btn,
+  .builder-map-container,
+  .btn,
+  .link-btn,
+  .toast,
+  .profile-alert-success,
+  .profile-alert-error,
+  .day-remove-btn,
+  .add-day-btn-row {
+    display: none !important;
+  }
+
+  body, .app-layout, .main-content, .page {
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  }
+
+  .planner-header-row {
+    border-bottom: 2px solid #e5e7eb !important;
+    padding-bottom: 16px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .planner-header-info h2 {
+    font-size: 24px !important;
+    color: #111827 !important;
+    margin: 0 0 6px !important;
+  }
+
+  .day-section-card {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border-radius: 8px !important;
+  }
+
+  .day-header-row {
+    border-bottom: 1px solid #f3f4f6 !important;
+    padding: 12px 16px !important;
+  }
+
+  .day-number-badge {
+    background: #111827 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .day-item-card {
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  .day-item-cost {
+    color: #111827 !important;
+    font-weight: 700 !important;
+  }
+
+  .day-vertical-line {
+    background: #e5e7eb !important;
+  }
+
+  .day-node-bullet {
+    background: #ffffff !important;
+    border: 1px solid #9ca3af !important;
+    color: #374151 !important;
+  }
+}

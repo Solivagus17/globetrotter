@@ -20,6 +20,9 @@ import {
   IconBookmark,
   IconCompass,
   IconUser,
+  IconChevronLeft,
+  IconChevronRight,
+  IconLogOut,
 } from './components/Icons'
 
 function useAuth() {
@@ -43,7 +46,7 @@ function RequireAuth({ children }) {
   return children
 }
 
-function Sidebar() {
+function Sidebar({ isCollapsed, onToggleCollapse }) {
   const session = useAuth()
   const navigate = useNavigate()
   if (!session) return null
@@ -55,45 +58,67 @@ function Sidebar() {
   const initials = displayName.slice(0, 2).toUpperCase()
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-top">
-        <Link to="/" className="brand">GlobeTrotter</Link>
+        <div className="sidebar-brand-row">
+          <Link to="/" className="brand" title="GlobeTrotter">
+            {isCollapsed ? <span className="brand-dot-logo">GT</span> : 'GlobeTrotter'}
+          </Link>
+          <button
+            type="button"
+            className="sidebar-collapse-toggle-btn"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
+          </button>
+        </div>
+
         <nav className="sidebar-nav">
-          <NavLink to="/" end className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconLayoutDashboard size={17} /> Dashboard
+          <NavLink to="/" end className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Dashboard">
+            <IconLayoutDashboard size={18} />
+            {!isCollapsed && <span>Dashboard</span>}
           </NavLink>
-          <NavLink to="/discover" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconSearch size={17} /> Discover Places
+          <NavLink to="/discover" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Discover Places">
+            <IconSearch size={18} />
+            {!isCollapsed && <span>Discover Places</span>}
           </NavLink>
-          <NavLink to="/budget" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconWallet size={17} /> Budget & Expenses
+          <NavLink to="/budget" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Budget & Expenses">
+            <IconWallet size={18} />
+            {!isCollapsed && <span>Budget & Expenses</span>}
           </NavLink>
-          <NavLink to="/saves" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconBookmark size={17} /> Saved Places
+          <NavLink to="/saves" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Saved Places">
+            <IconBookmark size={18} />
+            {!isCollapsed && <span>Saved Places</span>}
           </NavLink>
-          <NavLink to="/trips/new" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconCompass size={17} /> Plan New Trip
+          <NavLink to="/trips/new" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Plan New Trip">
+            <IconCompass size={18} />
+            {!isCollapsed && <span>Plan New Trip</span>}
           </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'}>
-            <IconUser size={17} /> Profile & Settings
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Profile & Settings">
+            <IconUser size={18} />
+            {!isCollapsed && <span>Profile & Settings</span>}
           </NavLink>
         </nav>
       </div>
 
       <div className="sidebar-bottom">
-        <Link to="/profile" className="sidebar-user-card" title="Edit Profile & Settings">
+        <Link to="/profile" className="sidebar-user-card" title={`Profile: ${displayName} (${email})`}>
           <div className="sidebar-avatar">{initials}</div>
-          <div className="sidebar-user-text">
-            <span className="sidebar-name">{displayName}</span>
-            <span className="sidebar-email">{email}</span>
-          </div>
+          {!isCollapsed && (
+            <div className="sidebar-user-text">
+              <span className="sidebar-name">{displayName}</span>
+              <span className="sidebar-email">{email}</span>
+            </div>
+          )}
         </Link>
         <button
           type="button"
-          className="btn secondary small logout-btn"
+          className={`btn secondary small logout-btn ${isCollapsed ? 'collapsed' : ''}`}
           onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
+          title="Log out"
         >
-          Log out
+          {isCollapsed ? <IconLogOut size={16} /> : 'Log out'}
         </button>
       </div>
     </aside>
@@ -101,24 +126,39 @@ function Sidebar() {
 }
 
 export default function App() {
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('globetrotter_sidebar_collapsed') === 'true'
+  })
+
+  function handleToggleCollapse() {
+    setIsCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('globetrotter_sidebar_collapsed', String(next))
+      return next
+    })
+  }
+
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar isCollapsed={isCollapsed} onToggleCollapse={handleToggleCollapse} />
       <main className="main-area">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/trips" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/discover" element={<RequireAuth><Discover /></RequireAuth>} />
           <Route path="/discover/:placeId" element={<RequireAuth><PlaceDetail /></RequireAuth>} />
           <Route path="/budget" element={<RequireAuth><GlobalBudget /></RequireAuth>} />
           <Route path="/saves" element={<RequireAuth><SavedPlaces /></RequireAuth>} />
           <Route path="/trips/new" element={<RequireAuth><CreateTrip /></RequireAuth>} />
+          <Route path="/trips/:tripId" element={<RequireAuth><DayPlanner /></RequireAuth>} />
           <Route path="/trips/:tripId/edit" element={<RequireAuth><EditTrip /></RequireAuth>} />
           <Route path="/trips/:tripId/builder" element={<RequireAuth><DayPlanner /></RequireAuth>} />
           <Route path="/trips/:tripId/planner" element={<RequireAuth><DayPlanner /></RequireAuth>} />
           <Route path="/trips/:tripId/view" element={<RequireAuth><ItineraryView /></RequireAuth>} />
           <Route path="/trips/:tripId/budget" element={<RequireAuth><Budget /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>

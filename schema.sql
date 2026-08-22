@@ -5,6 +5,7 @@ create table if not exists trips (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) not null,
   name text not null,
+  destination_city text, -- primary initial destination/city
   start_date date,
   end_date date,
   description text,
@@ -12,6 +13,9 @@ create table if not exists trips (
   is_public boolean default false,
   created_at timestamptz default now()
 );
+
+-- In case trips table already exists, ensure column is added:
+alter table trips add column if not exists destination_city text;
 
 create table if not exists stops (
   id uuid primary key default gen_random_uuid(),
@@ -135,11 +139,24 @@ create policy "day items via trip ownership" on day_items
   for all using (exists (select 1 from trips where trips.id = day_items.trip_id and trips.user_id = auth.uid()))
   with check (exists (select 1 from trips where trips.id = day_items.trip_id and trips.user_id = auth.uid()));
 
--- Catalog tables are public read
-alter table city_catalog enable row level security;
-drop policy if exists "anyone can read cities" on city_catalog;
-create policy "anyone can read cities" on city_catalog for select using (true);
+-- Indexes for fast querying
+create index if not exists idx_trips_user on trips(user_id);
+create index if not exists idx_stops_trip on stops(trip_id);
+create index if not exists idx_activities_stop on activities(stop_id);
+create index if not exists idx_saves_user on saves(user_id);
+create index if not exists idx_day_items_trip on day_items(trip_id, item_date);
 
-alter table activity_catalog enable row level security;
-drop policy if exists "anyone can read activities" on activity_catalog;
-create policy "anyone can read activities" on activity_catalog for select using (true);
+-- Optional dedicated user profiles table (complements Supabase auth.users metadata)
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  currency text default 'INR',
+  home_city text,
+  bio text,
+  avatar_url text,
+  updated_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+drop policy if exists "own profile" on profiles;
+create policy "own profile" on profiles for all using (auth.uid() = id) with check (auth.uid() = id);

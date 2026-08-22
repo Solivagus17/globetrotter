@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { IconSearch, IconStar, IconBookmark, IconPlus, IconMap, IconPin } from '../components/Icons'
 import TripMap from '../components/TripMap'
+import { geocodeCity } from '../osmService'
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -15,7 +16,7 @@ const CATEGORIES = [
 
 export default function Discover() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialCity = searchParams.get('city') || 'Paris'
+  const initialCity = searchParams.get('city') || 'Ahmedabad'
   const initialCategory = searchParams.get('category') || 'all'
 
   const [city, setCity] = useState(initialCity)
@@ -33,6 +34,7 @@ export default function Discover() {
   const [selectedDayDate, setSelectedDayDate] = useState('')
   const [actionSuccess, setActionSuccess] = useState('')
   const [error, setError] = useState('')
+  const [resolvedMapStops, setResolvedMapStops] = useState([])
 
   useEffect(() => {
     api.listSaves().then(saves => {
@@ -166,14 +168,32 @@ export default function Discover() {
     return 0
   })
 
-  const mapStops = sortedPlaces.map((p, i) => ({
-    id: p.id || `p-${i}`,
-    city_name: p.name,
-    country: p.address || city,
-    lat: p.lat || 48.8566,
-    lon: p.lng || 2.3522,
-    activities: [{ category: p.category, name: p.name, cost: p.cost }],
-  }))
+  // Compute accurate real-time map stops geocoded directly to the searched city
+  useEffect(() => {
+    let active = true
+    async function buildMapStops() {
+      const geo = await geocodeCity(city)
+      const baseLat = geo ? geo.lat : 23.0225
+      const baseLng = geo ? geo.lon : 72.5714
+
+      const stops = sortedPlaces.map((p, i) => {
+        const hasValidCoords = p.lat && p.lng && (p.lat !== 0 || p.lng !== 0)
+        return {
+          id: p.id || `p-${i}`,
+          city_name: p.name,
+          country: p.address || p.city_name || city,
+          lat: hasValidCoords ? p.lat : (baseLat + ((i % 6) * 0.004) - 0.01),
+          lon: hasValidCoords ? p.lng : (baseLng + ((i % 6) * 0.004) - 0.01),
+          activities: [{ category: p.category, name: p.name, cost: p.cost }],
+        }
+      })
+
+      if (active) setResolvedMapStops(stops)
+    }
+
+    buildMapStops()
+    return () => { active = false }
+  }, [sortedPlaces, city])
 
   return (
     <div className="page discover-page">
@@ -190,10 +210,29 @@ export default function Discover() {
           <input
             value={cityInput}
             onChange={e => setCityInput(e.target.value)}
-            placeholder="Search destination city... e.g. Paris, Tokyo, Goa, Rome"
+            placeholder="Search destination city... e.g. Ahmedabad, Goa, Jaipur, Tokyo, Paris"
           />
           <button type="submit" className="btn small">Search</button>
         </form>
+      </div>
+
+      {/* Popular Destination Quick Chips */}
+      <div className="destination-quick-chips reveal reveal-d1" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        <span className="muted" style={{ fontSize: '13px', alignSelf: 'center', marginRight: '4px' }}>Popular:</span>
+        {['Ahmedabad', 'Goa', 'Jaipur', 'Mumbai', 'Delhi', 'Dubai', 'Tokyo', 'Rome', 'Paris', 'Bali'].map(popCity => (
+          <button
+            key={popCity}
+            type="button"
+            className={`chip ${city.toLowerCase() === popCity.toLowerCase() ? 'active' : ''}`}
+            onClick={() => {
+              setCity(popCity)
+              setCityInput(popCity)
+              setSearchParams({ city: popCity, category })
+            }}
+          >
+            {popCity}
+          </button>
+        ))}
       </div>
 
       {actionSuccess && (
@@ -244,9 +283,9 @@ export default function Discover() {
       </div>
 
       {/* Map View */}
-      {showMap && mapStops.length > 0 && (
+      {showMap && resolvedMapStops.length > 0 && (
         <div className="builder-map-container reveal reveal-d2" style={{ marginBottom: 32 }}>
-          <TripMap stops={mapStops} height="320px" />
+          <TripMap stops={resolvedMapStops} height="320px" />
         </div>
       )}
 

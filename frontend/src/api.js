@@ -75,6 +75,7 @@ export const api = {
   // TripAdvisor-Style Day-by-Day Planner
   getTripDays: (tripId) => request(`/api/trips/${tripId}/days`),
   addDayItem: (tripId, date, body) => request(`/api/trips/${tripId}/days/${date}/items`, { method: 'POST', body: JSON.stringify(body) }),
+  updateDayItem: (id, body) => request(`/api/day-items/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteDayItem: (id) => request(`/api/day-items/${id}`, { method: 'DELETE' }),
 
   // Legacy catalog

@@ -91,25 +91,37 @@ export default function Dashboard() {
   if (loading) return <div className="page-loading">Loading your dashboard…</div>
 
   // Aggregate stats
-  const totalDays = trips.reduce((sum, t) => sum + (tripDurationDays(t.start_date, t.end_date) || 0), 0)
+  const totalDays = trips.reduce((sum, t) => {
+    const daysArr = tripDaysMap[t.id] || []
+    const duration = tripDurationDays(t.start_date, t.end_date) || 0
+    return sum + Math.max(daysArr.length, duration, 1)
+  }, 0)
   
   let totalBudget = 0
   let totalPlacesCount = 0
   const categorySpend = { food: 0, stay: 0, sightseeing: 0, flight: 0 }
+  const destinationsSet = new Set()
 
   trips.forEach(t => {
+    const dest = t.destination_city || t.description
+    if (dest) destinationsSet.add(dest.toLowerCase().trim())
+
     const days = tripDaysMap[t.id] || []
     days.forEach(d => {
-      (d.items || []).forEach(it => {
+      if (d.city_name) destinationsSet.add(d.city_name.toLowerCase().trim())
+      ;(d.items || []).forEach(it => {
         const cost = parseFloat(it.cost) || 0
         totalBudget += cost
         totalPlacesCount += 1
-        const cat = it.category || 'sightseeing'
+        const cat = (it.category || 'sightseeing').toLowerCase()
         if (categorySpend[cat] !== undefined) categorySpend[cat] += cost
         else if (cat === 'place') categorySpend.sightseeing += cost
       })
     })
   })
+
+  const upcomingTripsCount = trips.filter(t => tripStatus(t.start_date, t.end_date) === 'upcoming').length
+  const activeTripsCount = trips.filter(t => tripStatus(t.start_date, t.end_date) === 'active').length
 
   const maxCatCost = Math.max(1, ...Object.values(categorySpend))
 
@@ -141,7 +153,10 @@ export default function Dashboard() {
           </div>
           <div className="stat-info">
             <span className="stat-label">Total Itineraries</span>
-            <h3 className="stat-value">{trips.length} Trips</h3>
+            <h3 className="stat-value">{trips.length} {trips.length === 1 ? 'Trip' : 'Trips'}</h3>
+            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+              {activeTripsCount > 0 ? `${activeTripsCount} Active` : `${upcomingTripsCount} Upcoming`}
+            </span>
           </div>
         </div>
 
@@ -151,7 +166,10 @@ export default function Dashboard() {
           </div>
           <div className="stat-info">
             <span className="stat-label">Travel Days Planned</span>
-            <h3 className="stat-value">{totalDays} Days</h3>
+            <h3 className="stat-value">{totalDays} {totalDays === 1 ? 'Day' : 'Days'}</h3>
+            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+              {destinationsSet.size > 0 ? `${destinationsSet.size} Destinations` : 'Across your trips'}
+            </span>
           </div>
         </div>
 
@@ -162,6 +180,9 @@ export default function Dashboard() {
           <div className="stat-info">
             <span className="stat-label">Estimated Budget</span>
             <h3 className="stat-value">₹{Math.round(totalBudget).toLocaleString('en-IN')}</h3>
+            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+              {totalPlacesCount} {totalPlacesCount === 1 ? 'place/activity' : 'places/activities'}
+            </span>
           </div>
         </div>
 
@@ -171,7 +192,10 @@ export default function Dashboard() {
           </div>
           <div className="stat-info">
             <span className="stat-label">Saved Places</span>
-            <h3 className="stat-value">{saves.length} Saved</h3>
+            <h3 className="stat-value">{saves.length} {saves.length === 1 ? 'Place' : 'Places'}</h3>
+            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+              Bookmarked pool
+            </span>
           </div>
         </div>
       </div>
@@ -233,11 +257,6 @@ export default function Dashboard() {
                         {days ? ` · ${days}d` : ''}
                       </p>
                       {trip.description && <p className="trip-desc">{trip.description}</p>}
-                      <div className="trip-card-footer">
-                        <Link to={`/trips/${trip.id}/builder`} className="btn small" onClick={e => e.stopPropagation()}>Day Planner</Link>
-                        <Link to={`/trips/${trip.id}/budget`} className="btn secondary small" onClick={e => e.stopPropagation()}>Budget</Link>
-                        <Link to={`/trips/${trip.id}/edit`} className="btn secondary small" onClick={e => e.stopPropagation()}>Edit</Link>
-                      </div>
                     </div>
                   </div>
                 )
