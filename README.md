@@ -47,3 +47,4 @@ npm run dev            # runs on http://localhost:5173
 4. Add a second stop (e.g. "Rome") with an activity
 5. Click "View Itinerary" → show timeline
 6. Click "Budget" → show total + per-city bars
+
