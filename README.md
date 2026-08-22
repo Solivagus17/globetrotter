@@ -1,11 +1,11 @@
 # GlobeTrotter — Intelligent Travel Itinerary & Budget Planner
 
-> An intelligent, full-stack travel planning platform. GlobeTrotter combines dynamic day-by-day schedule builders, OpenStreetMap live geocoding, multi-destination financial analytics, and **Voyage AI** — a contextual AI travel concierge powered by Groq LLMs.
+> An intelligent, full-stack travel planning platform built for the Odoo Hackathon. GlobeTrotter combines dynamic multi-city schedule builders, OpenStreetMap live geocoding, multi-destination financial telemetry, luxury PDF exports, and AI-assisted travel discovery.
 
 ---
 
 ## Table of Contents
-- [Key Features](#key-features)
+- [Platform Overview & Feature Matrix](#platform-overview--feature-matrix)
 - [System Architecture](#system-architecture)
 - [Technology Stack](#technology-stack)
 - [Core Workflows & User Journey](#core-workflows--user-journey)
@@ -13,51 +13,23 @@
 
 ---
 
-## Key Features
+## Platform Overview & Feature Matrix
 
-### 1. Day-by-Day Schedule & Itinerary Planner
-- **Multi-Day Schedule Builder**: Organize trips day by day with custom start and end dates.
-- **Granular Activity Categories**: Dedicated quick-add drawers for:
-  - **Stays & Hotels**: Check-in/out dates, price in INR (Rs.), and amenities.
-  - **Flights & Transit**: Airline, flight number, departure/arrival cities and times, booking status, and PNR.
-  - **Dining & Food**: Restaurants, cafes, food tours, and street food.
-  - **Sightseeing & Monuments**: Landmarks, museums, and historic sites.
-  - **Adventures & Activities**: Tours, hikes, excursions, and boat rides.
-  - **Photo Memories & Notes**: Custom memory pins and notes.
-- **Per-Day City Reassignment**: Customize and override destinations for individual days within a single journey (e.g., Day 1 in Tokyo, Day 3 in Kyoto).
-- **Activity Reordering**: Shift activities earlier or later in the day with instant sync.
-- **Interactive Calendar View**: Toggle between timeline view and a monthly calendar grid with category-coded activity pills.
-
-### 2. Voyage AI — Intelligent Travel Concierge
-- **Dedicated Concierge Experience**: Standout hero navigation in the sidebar leading to a full-screen AI advisor (`/ai`).
-- **Context-Aware Grounding**: Seamlessly switch between global travel guidance and specific trip itineraries. The LLM receives the full active day-by-day plan, destinations, and dates to provide hyper-personalized recommendations.
-- **1-Click Quick Action Chips**: Instant prompts for *Top Attractions*, *Food & Dining*, *3-Day Itinerary Generator*, and *Budget Optimization*.
-- **Localized Financial Intelligence**: Automatically formats cost estimates in Indian Rupees (Rs.) with morning, afternoon, and evening time breakdowns.
-
-### 3. Dual-Tier Financial & Budget Analytics
-- **Trip-Specific Financial Analytics (`/trips/:tripId/budget`)**:
-  - Category-wise distribution across Stays, Flights, Food, Sights, and Transit.
-  - Multi-color segmented progress bar with real-time percentage shares.
-  - **Target Budget vs. Actual Gauge**: Set a target budget (Rs.) with real-time progress bars and overbudget alert banners.
-  - AI-generated financial insights and saving opportunities.
-- **Global Cross-Trip Budget Dashboard (`/budget`)**:
-  - **Geographic Location Spending Analysis**: Ranked horizontal bar graph showing where money is being spent by city and destination (e.g., Ahmedabad vs. Goa vs. Paris).
-  - Cross-itinerary cost comparison cards.
-  - Filterable, searchable itemized expense ledger across all journeys.
-
-### 4. Public Sharing & 1-Click Itinerary Cloning
-- **Public Visibility Switch**: Toggle itineraries between Private and Public mode.
-- **Public Read-Only View (`/public/trips/:tripId`)**: Clean, unauthenticated shareable view with cover photos, badge summaries, and day-by-day timeline.
-- **Copy to My Trips**: Logged-in viewers can clone any public itinerary into their account with 1 click, preserving all days, stops, and scheduled activities.
-
-### 5. Bespoke Luxury PDF Export
-- **One-Click Itinerary PDF Generator**: High-resolution, printable PDF export styled with GlobeTrotter's signature warm charcoal and yellow-gold design palette.
-- **Structured Tabular Layout**: Includes day headers, category badges, location tags, notes, itemized costs, and daily/overall budget subtotals.
-
-### 6. Live Maps & OpenStreetMap Discovery
-- **Leaflet & OpenStreetMap Integration**: Real-time geocoding of trip destinations and day stops.
-- **Interactive Map Markers**: Visualizes route connections, day pins, and planned stops on an interactive map.
-- **Curated & Live Discovery**: Browse attractions, dining spots, and activities by city with one-click "Add to Trip" actions.
+| Module | Feature Name | Core Functionality | UI Route |
+| :--- | :--- | :--- | :--- |
+| **Authentication** | Login & User Management | Email/password login, account registration, password reset recovery, profile customization. | `/login`, `/profile` |
+| **Landing Page** | Luxury Welcome Portal | Glassmorphic hero showcase, live interactive itinerary demo, and quick trip launcher. | `/`, `/landing` |
+| **Dashboard** | Traveler Hub | Overview of active trips, recommended destinations, quick actions, and expense highlights. | `/dashboard` |
+| **Trip Management** | Multi-City Itinerary Index | Searchable trip cards, duration counters, duplication, edit, and deletion actions. | `/trips` |
+| **Trip Creation** | Journey Canvas Setup | Destination selection, start & end dates, target budget in INR (Rs.), and cover photos. | `/trips/new` |
+| **Itinerary Builder** | Day-by-Day Day Planner | Granular drawers for stays, flights, food, sightseeing, and adventures with stop reordering. | `/trips/:id/builder` |
+| **Itinerary View** | Structured Timeline | Chronological view with day capsules, city badges, time slots, and calendar mode switch. | `/trips/:id/view` |
+| **Discovery Engine** | Places & Attractions Search | Live OpenStreetMap geocoding, category filters (Food, Sights, Adventure), and place cards. | `/discover` |
+| **Budget Telemetry** | Single-Trip Expense Tracking | Category distribution (Stays, Flights, Food, Sights), target budget gauge, and overbudget alerts. | `/trips/:id/budget` |
+| **Global Analytics** | Cross-Trip Financials | Geographic city spend bar chart, cross-itinerary cost ledger, and average daily spend. | `/budget` |
+| **Public Sharing** | Community Sharing & Cloning | Read-only public URLs, social sharing (WhatsApp, X, Link), and 1-click itinerary duplication. | `/public/trips/:id` |
+| **Bespoke Exports** | Magazine-Style PDF Booklets | Dedicated luxury cover page, alternating day capsules, and explicit category badges. | *Export Action* |
+| **Admin Portal** | Platform Adoption Analytics | System-wide trip counts, total travel days, category distribution, and top destination rankings. | `/admin` |
 
 ---
 
@@ -75,8 +47,8 @@ flowchart TD
 
     subgraph Backend["Backend (Flask REST API)"]
         Routes["API Route Handlers"]
-        VoyageAI["Voyage AI / Groq LLM Engine"]
         Analytics["Budget & Geographic Analytics"]
+        AdminModule["Admin & Platform Aggregator"]
         Storage["Image & Asset Storage Handler"]
     end
 
@@ -84,7 +56,6 @@ flowchart TD
         Supabase_DB[("Supabase PostgreSQL")]
         Supabase_Auth["Supabase Auth (JWT)"]
         Supabase_Storage["Supabase Object Storage"]
-        Groq_Cloud["Groq Cloud (LLaMA 3.3 70B)"]
         OSM["OpenStreetMap / Nominatim API"]
     end
 
@@ -93,9 +64,8 @@ flowchart TD
     UI --> Map
     Map --> OSM
     API_Client --> Routes
-    Routes --> VoyageAI
     Routes --> Analytics
-    VoyageAI --> Groq_Cloud
+    Routes --> AdminModule
     Routes --> Supabase_DB
     Routes --> Supabase_Auth
     Routes --> Supabase_Storage
@@ -105,93 +75,74 @@ flowchart TD
 
 ## Technology Stack
 
-### Frontend
-- **Framework**: React 18 with Vite
-- **Routing**: React Router v6
-- **Styling**: Vanilla CSS Design System with CSS variables (no Tailwind dependency), custom micro-animations, glassmorphism, and dark/warm themes
-- **Mapping & Geocoding**: Leaflet, React Leaflet, OpenStreetMap Nominatim
-- **PDF Generation**: jsPDF & jsPDF-AutoTable
-- **Icons**: Custom SVG vector icon suite
-
-### Backend
-- **Framework**: Python 3 with Flask
-- **Database Client**: Supabase Python SDK
-- **AI / LLM**: Groq Python SDK running `llama-3.3-70b-versatile`
-- **CORS & Auth**: `flask-cors`, Bearer JWT validation with Supabase Auth
-
-### Database & Cloud Services
-- **Database**: Supabase (Managed PostgreSQL with Row Level Security)
-- **Authentication**: Supabase Email & Password Auth
-- **Storage**: Supabase Storage Buckets for trip cover photos and assets
+| Layer | Technology | Purpose | Key Libraries & Specifications |
+| :--- | :--- | :--- | :--- |
+| **Frontend Framework** | React 18 | Declarative component hierarchy and dynamic state management | Vite, React Router v6 |
+| **Styling & Design** | Vanilla CSS3 | Custom design system, glassmorphism, floating micro-animations | Outfit typography, CSS variables |
+| **Mapping & GIS** | Leaflet & OpenStreetMap | Real-time geocoding, interactive pin markers, and route display | React-Leaflet, Nominatim API |
+| **Document Generation**| jsPDF | Swiss/Paris luxury editorial PDF itinerary booklets | jsPDF, AutoTable |
+| **Backend Framework** | Python 3 / Flask | RESTful API endpoints, data validation, and calculation engines | Flask, Flask-CORS, Gunicorn |
+| **Database & Auth** | Supabase | Managed PostgreSQL with Row-Level Security and JWT Auth | Supabase Python SDK |
+| **Asset Storage** | Supabase Storage | Cloud object storage for trip cover photography | Public CDN buckets |
 
 ---
 
 ## Core Workflows & User Journey
 
-### 1. Create a Trip
-1. Navigate to **Plan a New Trip** (`/trips/new`).
-2. Input the destination city (e.g., Goa, Paris, Tokyo), trip dates, optional target budget in Rs., and cover photo URL.
-3. The platform creates the trip and initializes the dynamic day sequence.
-
-### 2. Schedule Day-by-Day Activities
-1. In the **Day Planner** (`/trips/:tripId/builder`), select any day.
-2. Click **Place**, **Food**, **Stay**, **Flight**, or **Adventure** to open the quick-add drawer.
-3. Fill in name, timing, cost, and notes. The activity instantly updates the schedule, map pins, and budget subtotals.
-4. Reorder activities with the Up and Down arrow buttons or switch destinations per day.
-
-### 3. Ask Voyage AI for Concierge Advice
-1. Click **Voyage AI** in the sidebar.
-2. Select your active trip in the context dropdown.
-3. Click a quick prompt (e.g., "Must-Try Local Food" or "3-Day Itinerary") or type custom requests.
-4. Voyage AI analyzes your scheduled days and returns structured, actionable suggestions in Rs.
-
-### 4. Financial Tracking & Analytics
-1. Open **Budget** for the trip to inspect category spending, daily spend averages, and target budget progress.
-2. Visit **Global Budget** (`/budget`) to view geographic expenditure charts comparing costs across all destinations.
-
-### 5. Export & Share
-1. Click **Export PDF** to generate an itemized, printable travel booklet.
-2. Toggle **Public** to share your live itinerary link with friends, allowing them to view or clone it.
+| Workflow | Entry Point | User Actions | Expected Output |
+| :--- | :--- | :--- | :--- |
+| **1. Create Itinerary** | `/trips/new` | Enter destination city, travel date span, optional budget target, and cover image. | Initializes trip record and generates sequential day schedule. |
+| **2. Schedule Activities**| `/trips/:id/builder` | Open category drawers (Stay, Flight, Food, Sights, Adventure) to add items. | Schedule timeline, map markers, and itemized costs update in real time. |
+| **3. Financial Telemetry** | `/trips/:id/budget` | Set target budget and track category breakdown across transport, stay, food, sights. | Live progress gauges, overbudget alerts, and daily spend averages. |
+| **4. Global Analytics** | `/budget` | Review geographic bar chart comparing spending across Ahmedabad, Goa, Paris, etc. | Aggregated cost comparison and searchable cross-trip ledger. |
+| **5. PDF Booklets** | `/trips` or Planner | Click PDF Export trigger on any active trip card. | Multi-page luxury itinerary booklet with cover page and category badges. |
+| **6. Share & Clone** | `/public/trips/:id` | Publish trip publicly and share via WhatsApp, X, or direct link. | Read-only view with 1-click "Copy to My Trips" cloning for other users. |
+| **7. Platform Admin** | `/admin` | Enter master administrator passkey to view platform adoption stats. | Executive dashboard with top destinations, travel day counts, and platform ledger. |
 
 ---
 
 ## API Endpoints Reference
 
-### Trips
+### 1. Trips Management
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips` | List all trips for current user | Yes |
-| `POST` | `/api/trips` | Create a new trip | Yes |
-| `GET` | `/api/trips/<id>` | Get trip details with stops and items | Yes |
-| `PUT` | `/api/trips/<id>` | Update trip metadata, dates, or visibility | Yes |
-| `DELETE` | `/api/trips/<id>` | Delete a trip | Yes |
-| `POST` | `/api/trips/<id>/duplicate` | Clone a trip and all its day items | Yes |
-| `GET` | `/api/public/trips/<id>` | Read-only public itinerary view | No |
-| `POST` | `/api/trips/<id>/cover` | Upload cover photo to storage | Yes |
+| `GET` | `/api/trips` | Retrieve all itineraries owned by the authenticated user | Yes |
+| `POST` | `/api/trips` | Create a new trip with destination, dates, and target budget | Yes |
+| `GET` | `/api/trips/<id>` | Fetch complete trip details with associated stops and items | Yes |
+| `PUT` | `/api/trips/<id>` | Update trip metadata, date boundaries, or public visibility | Yes |
+| `DELETE` | `/api/trips/<id>` | Delete an itinerary and cascade remove all related day items | Yes |
+| `POST` | `/api/trips/<id>/duplicate` | Clone a trip and all its day items into user account | Yes |
+| `GET` | `/api/public/trips/<id>` | Read-only public itinerary view accessible without authentication | No |
+| `POST` | `/api/trips/<id>/cover` | Upload and attach cover photograph to trip | Yes |
 
-### Day-by-Day Planning
+### 2. Day-by-Day Planning & Schedule
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips/<id>/days` | Get full day breakdown and scheduled items | Yes |
-| `POST` | `/api/trips/<id>/days/<date>/items` | Add a scheduled activity/stay/flight | Yes |
-| `PUT` | `/api/day-items/<id>` | Update item details, notes, or order index | Yes |
-| `DELETE` | `/api/day-items/<id>` | Remove a day item | Yes |
+| `GET` | `/api/trips/<id>/days` | Retrieve all organized days and scheduled items for a trip | Yes |
+| `POST` | `/api/trips/<id>/days/<date>/items` | Add a scheduled activity, stay, flight, or food item to a specific date | Yes |
+| `PUT` | `/api/day-items/<id>` | Update activity name, category, timing, cost, or order index | Yes |
+| `DELETE` | `/api/day-items/<id>` | Remove a scheduled item from the itinerary | Yes |
 
-### Budget & Analytics
+### 3. Financial Telemetry & Budgeting
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/trips/<id>/budget` | Category breakdown & AI financial insights | Yes |
+| `GET` | `/api/trips/<id>/budget` | Retrieve category breakdown, itemized costs, and budget health | Yes |
 
-### Voyage AI & Discovery
+### 4. Place Discovery & Bookmarks
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/chat` | Voyage AI concierge chat with trip grounding | Yes |
-| `GET` | `/api/places/search` | Search places by city and category | Yes |
-| `GET` | `/api/saves` | List bookmarked places | Yes |
-| `POST` | `/api/saves` | Save a place to bookmarks | Yes |
-| `DELETE` | `/api/saves/<id>` | Remove a bookmarked place | Yes |
+| `GET` | `/api/places/search` | Search places and attractions by city name and category filter | Yes |
+| `GET` | `/api/places/<id>` | Retrieve detailed place metadata, address, and photo | Yes |
+| `GET` | `/api/saves` | List bookmarked places and saved attractions for current user | Yes |
+| `POST` | `/api/saves` | Save a place to personal bookmarks collection | Yes |
+| `DELETE` | `/api/saves/<id>` | Remove a place from saved bookmarks collection | Yes |
+
+### 5. Platform & Admin Analytics
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :---: |
+| `GET` | `/api/admin/analytics` | Aggregate platform-wide adoption metrics, top cities, and trip activity | Yes |
 
 ---
 
 ## License
-This project was created for the hackathon. Feel free to use and adapt it for your travel adventures.
+Built for the Odoo Hackathon. Empowering personalized, intelligent, and collaborative travel planning.
