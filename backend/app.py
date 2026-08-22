@@ -1,5 +1,6 @@
 import os
 import math
+import re
 from datetime import datetime, timedelta
 from uuid import uuid4
 import urllib.request
@@ -15,6 +16,7 @@ load_dotenv()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # service role key, backend only
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 OPENTRIPMAP_KEY = os.environ.get("OPENTRIPMAP_KEY", "")
 
 COVER_BUCKET = "trip-covers"
@@ -243,6 +245,125 @@ def delete_trip(trip_id):
         return err
     supabase.table("trips").delete().eq("id", trip_id).eq("user_id", uid).execute()
     return "", 204
+
+
+@app.route("/api/public/trips/<trip_id>", methods=["GET"])
+def get_public_trip(trip_id):
+    """Fetches a public trip without authentication."""
+    try:
+        trip_res = supabase.table("trips").select("*").eq("id", trip_id).execute()
+        if not trip_res.data:
+            return jsonify({"error": "Trip not found"}), 404
+        trip = trip_res.data[0]
+        if not trip.get("is_public"):
+            return jsonify({"error": "This trip is private"}), 403
+
+        stops_res = supabase.table("stops").select("*, activities(*)").eq("trip_id", trip_id).order("order_index").execute()
+        days_res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+
+        trip["stops"] = stops_res.data or []
+        trip["day_items"] = days_res.data or []
+        return jsonify(trip)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/trips/<trip_id>/duplicate", methods=["POST"])
+def duplicate_trip(trip_id):
+    """Duplicates a trip row along with all stops, activities, and day items."""
+    uid, err = require_user()
+    if err:
+        return err
+
+    # 1. Fetch original trip (owner OR public)
+    try:
+        trip_res = supabase.table("trips").select("*").eq("id", trip_id).execute()
+        if not trip_res.data:
+            return jsonify({"error": "Trip not found"}), 404
+        orig_trip = trip_res.data[0]
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    if orig_trip.get("user_id") != uid and not orig_trip.get("is_public"):
+        return jsonify({"error": "Unauthorized to clone this private trip"}), 403
+
+    # 2. Insert duplicated Trip
+    new_trip_id = str(uuid4())
+    new_name = f"{orig_trip.get('name', 'Trip')} (Copy)"
+    new_trip_payload = {
+        "id": new_trip_id,
+        "user_id": uid,
+        "name": new_name,
+        "start_date": orig_trip.get("start_date"),
+        "end_date": orig_trip.get("end_date"),
+        "description": orig_trip.get("description"),
+        "destination_city": orig_trip.get("destination_city"),
+        "cover_photo_url": orig_trip.get("cover_photo_url"),
+        "is_public": False,
+    }
+
+    try:
+        t_res = supabase.table("trips").insert(new_trip_payload).execute()
+        new_trip = t_res.data[0]
+    except Exception:
+        if "destination_city" in new_trip_payload:
+            del new_trip_payload["destination_city"]
+            t_res = supabase.table("trips").insert(new_trip_payload).execute()
+            new_trip = t_res.data[0]
+        else:
+            return jsonify({"error": "Failed to duplicate trip"}), 400
+
+    # 3. Duplicate Stops & Activities
+    try:
+        stops_res = supabase.table("stops").select("*, activities(*)").eq("trip_id", trip_id).order("order_index").execute()
+        for s in (stops_res.data or []):
+            new_stop_id = str(uuid4())
+            s_payload = {
+                "id": new_stop_id,
+                "trip_id": new_trip_id,
+                "city_name": s.get("city_name"),
+                "country": s.get("country"),
+                "start_date": s.get("start_date"),
+                "end_date": s.get("end_date"),
+                "order_index": s.get("order_index", 0),
+            }
+            supabase.table("stops").insert(s_payload).execute()
+            for act in (s.get("activities") or []):
+                act_payload = {
+                    "id": str(uuid4()),
+                    "stop_id": new_stop_id,
+                    "name": act.get("name"),
+                    "category": act.get("category"),
+                    "cost": act.get("cost", 0),
+                    "notes": act.get("notes"),
+                    "photo_url": act.get("photo_url"),
+                    "order_index": act.get("order_index", 0),
+                }
+                supabase.table("activities").insert(act_payload).execute()
+    except Exception as eStops:
+        print(f"Stops duplication notice: {eStops}")
+
+    # 4. Duplicate Day Items
+    try:
+        days_res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+        for it in (days_res.data or []):
+            it_payload = {
+                "id": str(uuid4()),
+                "trip_id": new_trip_id,
+                "item_date": it.get("item_date"),
+                "category": it.get("category", "place"),
+                "name": it.get("name"),
+                "cost": it.get("cost", 0),
+                "notes": it.get("notes", ""),
+                "photo_url": it.get("photo_url", ""),
+                "location_name": it.get("location_name", ""),
+                "order_index": it.get("order_index", 0),
+            }
+            supabase.table("day_items").insert(it_payload).execute()
+    except Exception as eDays:
+        print(f"Day items duplication notice: {eDays}")
+
+    return jsonify(new_trip), 201
 
 
 # ---------- STOPS ----------
@@ -809,6 +930,150 @@ def get_trip_days(trip_id):
     })
 
 
+@app.route("/api/trips/<trip_id>/budget", methods=["GET"])
+def get_trip_budget_breakdown(trip_id):
+    """Detailed category-wise budget analytics and financial breakdown for a trip."""
+    uid, err = require_user()
+    if err:
+        return err
+
+    # 1. Fetch Trip Details
+    trip = None
+    try:
+        t_res = supabase.table("trips").select("*").eq("id", trip_id).single().execute()
+        trip = t_res.data
+    except Exception:
+        pass
+
+    if not trip:
+        trip = FALLBACK_TRIPS.get(trip_id, {"name": "Travel Journey", "start_date": "", "end_date": ""})
+
+    # 2. Fetch Day Items
+    items = []
+    try:
+        res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+        items = res.data or []
+    except Exception:
+        items = FALLBACK_DAY_ITEMS.get(trip_id, [])
+
+    total_cost = sum(float(it.get("cost") or 0) for it in items)
+
+    # 3. Category Breakdown Map
+    category_map = {
+        "flight": {"name": "Flights & Airfare", "total": 0.0, "count": 0, "color": "#2563eb", "items": []},
+        "stay": {"name": "Hotels & Stays", "total": 0.0, "count": 0, "color": "#0284c7", "items": []},
+        "food": {"name": "Dining & Food", "total": 0.0, "count": 0, "color": "#ea580c", "items": []},
+        "sightseeing": {"name": "Sightseeing & Monuments", "total": 0.0, "count": 0, "color": "#16a34a", "items": []},
+        "adventure": {"name": "Adventure & Activities", "total": 0.0, "count": 0, "color": "#d97706", "items": []},
+        "culture": {"name": "Culture & Heritage", "total": 0.0, "count": 0, "color": "#dc2626", "items": []},
+        "transport": {"name": "Local Transit & Cabs", "total": 0.0, "count": 0, "color": "#7c3aed", "items": []},
+        "other": {"name": "General & Miscellaneous", "total": 0.0, "count": 0, "color": "#64748b", "items": []},
+    }
+
+    by_day_map = {}
+    by_city_map = {}
+
+    for it in items:
+        raw_cat = (it.get("category") or "other").lower().strip()
+        cost = float(it.get("cost") or 0)
+        date_str = it.get("item_date") or it.get("date") or "Flexible Date"
+        loc = it.get("location_name") or trip.get("destination_city") or "Main Destination"
+
+        # Categorize
+        if raw_cat in ["flight", "flights", "plane", "airline"]:
+            target_cat = "flight"
+        elif raw_cat in ["stay", "hotel", "resort", "accommodation", "airbnb"]:
+            target_cat = "stay"
+        elif raw_cat in ["food", "dining", "restaurant", "cafe", "street food", "drink"]:
+            target_cat = "food"
+        elif raw_cat in ["sightseeing", "place", "attraction", "monument", "landmark"]:
+            target_cat = "sightseeing"
+        elif raw_cat in ["adventure", "tour", "hike", "activity", "safari"]:
+            target_cat = "adventure"
+        elif raw_cat in ["culture", "temple", "museum", "church", "heritage"]:
+            target_cat = "culture"
+        elif raw_cat in ["transport", "transit", "cab", "train", "metro", "bus"]:
+            target_cat = "transport"
+        else:
+            target_cat = "other"
+
+        category_map[target_cat]["total"] += cost
+        category_map[target_cat]["count"] += 1
+        category_map[target_cat]["items"].append({
+            "id": it.get("id"),
+            "name": it.get("name"),
+            "cost": cost,
+            "date": date_str,
+            "notes": it.get("notes", ""),
+            "category": target_cat
+        })
+
+        # By Day
+        if date_str not in by_day_map:
+            by_day_map[date_str] = {"date": date_str, "total": 0.0, "count": 0, "items": []}
+        by_day_map[date_str]["total"] += cost
+        by_day_map[date_str]["count"] += 1
+        by_day_map[date_str]["items"].append(it)
+
+        # By City
+        by_city_map[loc] = by_city_map.get(loc, 0.0) + cost
+
+    # Calculate Percentages & Metrics
+    for k in category_map:
+        c_tot = category_map[k]["total"]
+        category_map[k]["percentage"] = round((c_tot / total_cost * 100), 1) if total_cost > 0 else 0.0
+        category_map[k]["avg_cost"] = round(c_tot / category_map[k]["count"], 1) if category_map[k]["count"] > 0 else 0.0
+
+    # Sort categories by highest spend
+    sorted_categories = sorted(
+        [{"id": k, **v} for k, v in category_map.items() if v["count"] > 0 or v["total"] > 0],
+        key=lambda x: x["total"],
+        reverse=True
+    )
+
+    days_count = max(1, len(by_day_map))
+    avg_daily_spend = round(total_cost / days_count, 1)
+
+    top_cat = sorted_categories[0] if sorted_categories else None
+    highest_cat_name = top_cat["name"] if top_cat else "General"
+    highest_cat_pct = top_cat["percentage"] if top_cat else 0.0
+
+    # Build smart actionable budget insights
+    insights = []
+    if total_cost == 0:
+        insights.append("No expenses added yet. Use Day Planner to schedule stays, flights, dining, and attractions with pricing in ₹.")
+    else:
+        if top_cat and top_cat["percentage"] >= 40:
+            insights.append(f"{highest_cat_name} accounts for {highest_cat_pct}% of your overall budget. Check for package deals or advance booking to optimize.")
+        if category_map["food"]["total"] > 0:
+            food_avg = round(category_map["food"]["total"] / days_count, 1)
+            insights.append(f"Estimated food & dining budget is ₹{food_avg:,.0f} per day across your itinerary.")
+        if category_map["flight"]["total"] > 0:
+            insights.append("Flight & transit tickets are included in your budget calculations.")
+        if len(sorted_categories) >= 3:
+            insights.append("Your spending is well-balanced across dining, attractions, and accommodations.")
+
+    return jsonify({
+        "trip": trip,
+        "total": total_cost,
+        "currency": "INR",
+        "currency_symbol": "₹",
+        "avg_daily_spend": avg_daily_spend,
+        "days_count": days_count,
+        "total_items_count": len(items),
+        "paid_items_count": sum(1 for it in items if float(it.get("cost") or 0) > 0),
+        "free_items_count": sum(1 for it in items if float(it.get("cost") or 0) == 0),
+        "categories": sorted_categories,
+        "by_day": sorted(list(by_day_map.values()), key=lambda x: x["date"]),
+        "by_city": by_city_map,
+        "analysis": {
+            "highest_spending_category": highest_cat_name,
+            "highest_spending_percentage": highest_cat_pct,
+            "insights": insights
+        }
+    })
+
+
 @app.route("/api/trips/<trip_id>/days/<item_date>/items", methods=["POST"])
 def add_day_item(trip_id, item_date):
     """Adds a scheduled item to a specific day."""
@@ -886,6 +1151,121 @@ def delete_day_item(item_id):
         FALLBACK_DAY_ITEMS[tid] = [it for it in FALLBACK_DAY_ITEMS[tid] if str(it.get("id")) != str(item_id)]
 
     return "", 204
+
+
+# ---------- AI CONVERSATIONAL TRAVEL ASSISTANT (GROQ LLM) ----------
+
+@app.route("/api/chat", methods=["POST"])
+def chat_travel_ai():
+    """Context-aware travel AI chat assistant powered by Groq LLM."""
+    body = request.json or {}
+    messages = body.get("messages", [])
+    trip_id = body.get("trip_id")
+
+    # Gather user or trip context if available
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    uid = None
+    if token:
+        try:
+            user_response = supabase.auth.get_user(token)
+            if user_response and user_response.user:
+                uid = user_response.user.id
+        except Exception:
+            pass
+
+    trip_context_str = ""
+    if trip_id:
+        try:
+            trip_res = supabase.table("trips").select("*").eq("id", trip_id).single().execute()
+            if trip_res.data:
+                t = trip_res.data
+                days_res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+                items = days_res.data or []
+                trip_context_str = f"""
+--- CURRENT ACTIVE TRIP CONTEXT ---
+Trip Name: {t.get('name')}
+Primary Destination: {t.get('destination_city') or t.get('description') or 'Worldwide'}
+Date Span: {t.get('start_date') or 'Flexible'} to {t.get('end_date') or 'Flexible'}
+Total Scheduled Activities / Stays ({len(items)} items):
+"""
+                for it in items:
+                    trip_context_str += f"- Date: {it.get('date')} | Activity: {it.get('name')} | Category: {it.get('category')} | Cost: INR {it.get('cost')} | Location: {it.get('location_name') or ''} | Notes: {it.get('notes')}\n"
+        except Exception as e:
+            print(f"Error gathering trip context for chat: {e}")
+
+    # Gather saved places if user is logged in
+    saves_context_str = ""
+    if uid:
+        try:
+            saves_res = supabase.table("saves").select("name,category,cost,city_name").eq("user_id", uid).limit(10).execute()
+            if saves_res.data:
+                saves_context_str = "\n--- USER'S SAVED BOOKMARKS POOL ---\n"
+                for s in saves_res.data:
+                    saves_context_str += f"- {s.get('name')} ({s.get('category')}, {s.get('city_name')}) ~ INR {s.get('cost')}\n"
+        except Exception as e:
+            print(f"Error gathering saves context: {e}")
+
+    system_prompt = f"""You are 'Voyage AI', the flagship ultra-intelligent luxury travel concierge, itinerary architect, and local guide for GlobeTrotter.
+You help travelers design unforgettable journeys, discover hidden gems, optimize day schedules, pick iconic dining spots, budget flights & stays in Indian Rupees (INR / ₹), and answer questions with precision and elegance.
+
+Key Guidelines:
+1. Always format responses in clean, beautiful Markdown with bullet points, bold place names, timing suggestions (Morning/Afternoon/Evening), and estimated costs in Rupees (₹).
+2. Keep recommendations focused, actionable, and tailored to the trip destination.
+3. Be enthusiastic, cultured, concise, and helpful.
+4. When relevant, suggest clear next steps (e.g. "Add to Day 1 schedule", "Check flight transit times").
+
+{trip_context_str}
+{saves_context_str}
+"""
+
+    groq_messages = [{"role": "system", "content": system_prompt}]
+    for m in messages:
+        if m.get("role") in ["user", "assistant"]:
+            groq_messages.append({"role": m["role"], "content": m["content"]})
+
+    # Try models in order of priority
+    candidate_models = ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b", "groq/compound"]
+    last_error = ""
+
+    for model_name in candidate_models:
+        try:
+            req_data = json.dumps({
+                "model": model_name,
+                "messages": groq_messages,
+                "temperature": 0.7,
+                "max_tokens": 1024,
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                "https://api.groq.com/openai/v1/chat/completions",
+                data=req_data,
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "GlobeTrotterApp/1.0"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=12) as response:
+                res_json = json.loads(response.read().decode())
+                raw_reply = res_json.get("choices", [{}])[0].get("message", {}).get("content", "")
+                
+                # Clean any <think> tags if model produces internal thinking
+                cleaned_reply = re.sub(r'<think>.*?</think>', '', raw_reply, flags=re.DOTALL).strip()
+                if not cleaned_reply:
+                    cleaned_reply = raw_reply.strip()
+
+                return jsonify({
+                    "reply": cleaned_reply or "I am here to help you plan your next extraordinary trip!",
+                    "model": model_name
+                })
+        except Exception as e:
+            last_error = str(e)
+            print(f"Groq model {model_name} attempt error: {e}")
+            continue
+
+    return jsonify({"error": f"AI Assistant unavailable: {last_error}"}), 500
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { useToast } from '../context/ToastContext'
 import {
   IconPlane,
   IconMap,
@@ -30,6 +31,19 @@ function tripStatus(start, end) {
   return 'active'
 }
 
+function getDaysUntil(startDate) {
+  if (!startDate) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const target = new Date(startDate)
+  target.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((target - now) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return null
+  if (diffDays === 0) return 'Starts today'
+  if (diffDays === 1) return 'Starts tomorrow'
+  return `in ${diffDays} days`
+}
+
 const STATUS_LABEL = { draft: 'Draft', upcoming: 'Upcoming', active: 'In progress', past: 'Completed' }
 
 export default function Dashboard() {
@@ -39,6 +53,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const toast = useToast()
 
   useEffect(() => {
     async function loadDashboard() {
@@ -83,12 +98,44 @@ export default function Dashboard() {
     try {
       await api.deleteTrip(id)
       setTrips(trips.filter(t => t.id !== id))
+      toast.success('Trip deleted.')
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
-  if (loading) return <div className="page-loading">Loading your dashboard…</div>
+  async function handleDuplicate(e, id) {
+    e.stopPropagation()
+    try {
+      const cloned = await api.duplicateTrip(id)
+      setTrips(prev => [cloned, ...prev])
+      toast.success('✨ Trip duplicated successfully!')
+    } catch (err) {
+      toast.error(err.message || 'Failed to duplicate trip.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="page dashboard-page">
+        <div className="dashboard-stats-grid">
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 95, borderRadius: 16 }} />
+        </div>
+        <div className="dashboard-main-split">
+          <div className="dashboard-trips-section">
+            <div className="skeleton" style={{ height: 260, borderRadius: 16, marginBottom: 16 }} />
+            <div className="skeleton" style={{ height: 260, borderRadius: 16 }} />
+          </div>
+          <div className="dashboard-side-column">
+            <div className="skeleton" style={{ height: 320, borderRadius: 16 }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Aggregate stats
   const totalDays = trips.reduce((sum, t) => {
@@ -148,52 +195,52 @@ export default function Dashboard() {
       {/* Top 4 Key Metric Cards */}
       <div className="dashboard-stats-grid reveal reveal-d1">
         <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-            <IconMap size={22} />
+          <div className="stat-icon-wrap" style={{ background: 'rgba(245, 180, 41, 0.15)', color: '#E0A11C' }}>
+            <IconMap size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Total Itineraries</span>
             <h3 className="stat-value">{trips.length} {trips.length === 1 ? 'Trip' : 'Trips'}</h3>
-            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
-              {activeTripsCount > 0 ? `${activeTripsCount} Active` : `${upcomingTripsCount} Upcoming`}
+            <span className="stat-subtext">
+              {activeTripsCount > 0 ? `${activeTripsCount} Active · ${upcomingTripsCount} Upcoming` : `${upcomingTripsCount} Upcoming`}
             </span>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'var(--bg-warm)', color: 'var(--text)' }}>
-            <IconCompass size={22} />
+          <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#2563eb' }}>
+            <IconCompass size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Travel Days Planned</span>
             <h3 className="stat-value">{totalDays} {totalDays === 1 ? 'Day' : 'Days'}</h3>
-            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+            <span className="stat-subtext">
               {destinationsSet.size > 0 ? `${destinationsSet.size} Destinations` : 'Across your trips'}
             </span>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-            <IconWallet size={22} />
+          <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}>
+            <IconWallet size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Estimated Budget</span>
             <h3 className="stat-value">₹{Math.round(totalBudget).toLocaleString('en-IN')}</h3>
-            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+            <span className="stat-subtext">
               {totalPlacesCount} {totalPlacesCount === 1 ? 'place/activity' : 'places/activities'}
             </span>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'var(--bg-warm)', color: 'var(--text)' }}>
-            <IconBookmark size={22} />
+          <div className="stat-icon-wrap" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#9333ea' }}>
+            <IconBookmark size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Saved Places</span>
             <h3 className="stat-value">{saves.length} {saves.length === 1 ? 'Place' : 'Places'}</h3>
-            <span className="muted" style={{ fontSize: '11px', marginTop: 2 }}>
+            <span className="stat-subtext">
               Bookmarked pool
             </span>
           </div>
@@ -226,6 +273,7 @@ export default function Dashboard() {
               {trips.map((trip, i) => {
                 const status = tripStatus(trip.start_date, trip.end_date)
                 const days = tripDurationDays(trip.start_date, trip.end_date)
+                const countdown = status === 'upcoming' ? getDaysUntil(trip.start_date) : null
                 const delayClass = i < 8 ? `reveal-d${i + 1}` : 'reveal-d8'
                 const daysCount = (tripDaysMap[trip.id] || []).length
 
@@ -243,13 +291,33 @@ export default function Dashboard() {
                     )}
                     <div className={trip.cover_photo_url ? 'trip-card-body' : 'trip-card-body-no-cover'}>
                       <div className="trip-card-top">
-                        <span className={`status-pill status-${status}`}>{STATUS_LABEL[status]}</span>
-                        <button
-                          type="button"
-                          className="trip-menu-btn"
-                          title="Delete trip"
-                          onClick={(e) => handleDelete(e, trip.id)}
-                        >×</button>
+                        <div className="row-center" style={{ gap: 6 }}>
+                          <span className={`status-pill status-${status}`}>{STATUS_LABEL[status]}</span>
+                          {countdown && (
+                            <span className="countdown-pill" title={`Starts in ${countdown}`}>
+                              ⏳ {countdown}
+                            </span>
+                          )}
+                        </div>
+                        <div className="row-center" style={{ gap: 4 }}>
+                          <button
+                            type="button"
+                            className="trip-menu-btn"
+                            title="Duplicate trip"
+                            onClick={(e) => handleDuplicate(e, trip.id)}
+                            style={{ fontSize: '13px' }}
+                          >
+                            📋
+                          </button>
+                          <button
+                            type="button"
+                            className="trip-menu-btn"
+                            title="Delete trip"
+                            onClick={(e) => handleDelete(e, trip.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
                       <h3>{trip.name}</h3>
                       <p className="muted trip-dates">

@@ -46,6 +46,14 @@ export const api = {
   getTrip: (id) => request(`/api/trips/${id}`),
   updateTrip: (id, body) => request(`/api/trips/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteTrip: (id) => request(`/api/trips/${id}`, { method: 'DELETE' }),
+  duplicateTrip: (id) => request(`/api/trips/${id}/duplicate`, { method: 'POST' }),
+  getPublicTrip: (id) => fetch(`${BASE_URL}/api/public/trips/${id}`).then(async r => {
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }))
+      throw new Error(err.error || 'Failed to load public trip')
+    }
+    return r.json()
+  }),
   uploadCover: (tripId, file) => uploadCoverRequest(tripId, file),
 
   // Stops
@@ -77,6 +85,10 @@ export const api = {
   addDayItem: (tripId, date, body) => request(`/api/trips/${tripId}/days/${date}/items`, { method: 'POST', body: JSON.stringify(body) }),
   updateDayItem: (id, body) => request(`/api/day-items/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteDayItem: (id) => request(`/api/day-items/${id}`, { method: 'DELETE' }),
+
+  // AI Travel Concierge (Groq LLM)
+  chat: (messages, tripId = null) =>
+    request('/api/chat', { method: 'POST', body: JSON.stringify({ messages, trip_id: tripId }) }),
 
   // Legacy catalog
   searchCities: (q) => request(`/api/catalog/cities?q=${encodeURIComponent(q || '')}`),

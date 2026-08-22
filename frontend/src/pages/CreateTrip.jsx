@@ -50,6 +50,8 @@ export default function CreateTrip() {
         start_date: form.start_date,
         end_date: form.end_date,
         description: form.description.trim() || form.destination_city.trim(),
+        cover_photo_url: form.cover_photo_url ? form.cover_photo_url.trim() : null,
+        budget_target: form.budget_target ? parseFloat(form.budget_target) : null,
       }
 
       const trip = await api.createTrip(payload)
@@ -145,13 +147,37 @@ export default function CreateTrip() {
             </label>
           </div>
 
+          {/* Budget Target & Cover Photo (Tier 1 & Tier 2) */}
+          <div className="form-row reveal reveal-d4">
+            <label>
+              Target Budget (₹)
+              <input
+                type="number"
+                min="0"
+                step="500"
+                value={form.budget_target || ''}
+                onChange={e => update('budget_target', e.target.value)}
+                placeholder="e.g. 25000"
+              />
+            </label>
+            <label>
+              Cover Photo Image URL
+              <input
+                type="url"
+                value={form.cover_photo_url || ''}
+                onChange={e => update('cover_photo_url', e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+              />
+            </label>
+          </div>
+
           {/* Notes / Description */}
           <label className="reveal reveal-d4">
             Notes / Description
             <textarea
               value={form.description}
               onChange={e => update('description', e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Travel companion notes, flight details, or sights you want to explore..."
             />
           </label>

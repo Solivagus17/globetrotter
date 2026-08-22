@@ -25,6 +25,7 @@ export default function EditTrip() {
           start_date: trip.start_date || '',
           end_date: trip.end_date || '',
           description: trip.description || '',
+          budget_target: trip.budget_target || '',
         })
         setCoverUrl(trip.cover_photo_url || '')
       })
@@ -195,12 +196,23 @@ export default function EditTrip() {
             </label>
           </div>
 
+          <label>Target Budget (₹)
+            <input
+              type="number"
+              min="0"
+              step="500"
+              value={form.budget_target || ''}
+              onChange={e => update('budget_target', e.target.value)}
+              placeholder="e.g. 35000"
+            />
+          </label>
+
           <label>Description & Notes
             <textarea
               value={form.description}
               onChange={e => update('description', e.target.value)}
-              rows={5}
-              placeholder="Add key travel details, flight info, packing list reminders, or general trip notes..."
+              rows={3}
+              placeholder="Itinerary summary, transport links, or group notes..."
             />
           </label>
 

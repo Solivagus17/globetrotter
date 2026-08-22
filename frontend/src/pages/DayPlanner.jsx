@@ -22,9 +22,11 @@ import {
 import TripMap from '../components/TripMap'
 import { getCategorizedPlaces, geocodeCity } from '../osmService'
 import { generateItineraryPDF } from '../pdfService'
+import { useToast } from '../context/ToastContext'
 
 export default function DayPlanner() {
   const { tripId } = useParams()
+  const toast = useToast()
   const [plannerData, setPlannerData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('itinerary')
@@ -48,11 +50,15 @@ export default function DayPlanner() {
 
   // Real-time resolved map waypoints
   const [resolvedMapStops, setResolvedMapStops] = useState([])
+  const [calendarDate, setCalendarDate] = useState(() => new Date())
 
   async function load() {
     try {
       const data = await api.getTripDays(tripId)
       setPlannerData(data)
+      if (data?.days?.[0]?.date) {
+        setCalendarDate(new Date(data.days[0].date))
+      }
 
       const saves = await api.listSaves()
       setUserSaves(saves || [])
@@ -422,14 +428,71 @@ function parseFlightInfo(item) {
       })
 
       setEditingItem(null)
-      setSuccessMsg('Updated item details!')
-      setTimeout(() => setSuccessMsg(''), 2500)
+      toast.success('Updated item details!')
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
-  if (loading) return <div className="page-loading">Loading planner...</div>
+  async function handleTogglePublic() {
+    const trip = plannerData?.trip
+    if (!trip) return
+    const nextPublic = !trip.is_public
+
+    try {
+      await api.updateTrip(tripId, { is_public: nextPublic })
+      setPlannerData(prev => ({
+        ...prev,
+        trip: { ...prev.trip, is_public: nextPublic },
+      }))
+      toast.success(nextPublic ? '🌍 Itinerary is now Public!' : '🔒 Itinerary is now Private.')
+    } catch (err) {
+      toast.error('Failed to update public visibility.')
+    }
+  }
+
+  function handleCopyPublicLink() {
+    const url = `${window.location.origin}/public/trips/${tripId}`
+    navigator.clipboard.writeText(url)
+    toast.success('📋 Public link copied to clipboard!')
+  }
+
+  async function handleReorderDayItem(date, currentIndex, direction) {
+    const day = (plannerData.days || []).find(d => d.date === date)
+    if (!day || !day.items) return
+
+    const items = [...day.items]
+    const targetIndex = currentIndex + direction
+    if (targetIndex < 0 || targetIndex >= items.length) return
+
+    const temp = items[currentIndex]
+    items[currentIndex] = items[targetIndex]
+    items[targetIndex] = temp
+
+    setPlannerData(prev => ({
+      ...prev,
+      days: (prev.days || []).map(d => (d.date === date ? { ...d, items } : d)),
+    }))
+
+    try {
+      await api.updateDayItem(items[currentIndex].id, { order_index: currentIndex })
+      await api.updateDayItem(items[targetIndex].id, { order_index: targetIndex })
+      toast.success('Activity order updated!')
+    } catch (e) {
+      console.warn('Reorder sync notice:', e)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="page day-planner-page">
+        <div className="skeleton" style={{ height: 90, borderRadius: 16, marginBottom: 24 }} />
+        <div className="skeleton" style={{ height: 260, borderRadius: 16, marginBottom: 24 }} />
+        <div className="skeleton" style={{ height: 180, borderRadius: 16, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 180, borderRadius: 16 }} />
+      </div>
+    )
+  }
   if (!plannerData) {
     return (
       <div className="page" style={{ padding: '40px 20px', textAlign: 'center' }}>
@@ -446,12 +509,6 @@ function parseFlightInfo(item) {
   const totalCost = days.reduce((sum, d) => {
     return sum + (d.items || []).reduce((s, it) => s + (parseFloat(it.cost) || 0), 0)
   }, 0)
-
-  // Calendar State & Month navigation
-  const [calendarDate, setCalendarDate] = useState(() => {
-    if (days[0]?.date) return new Date(days[0].date)
-    return new Date()
-  })
 
   function handlePrevMonth() {
     setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
@@ -549,6 +606,28 @@ function parseFlightInfo(item) {
           </p>
         </div>
         <div className="header-actions">
+          {/* Public Sharing Toggle & Link */}
+          <div className="planner-public-switch-wrap">
+            <button
+              type="button"
+              className={`btn small ${trip.is_public ? 'success-btn' : 'secondary'}`}
+              onClick={handleTogglePublic}
+              title="Toggle public visibility for this trip"
+            >
+              {trip.is_public ? '🌍 Public' : '🔒 Private'}
+            </button>
+            {trip.is_public && (
+              <button
+                type="button"
+                className="btn secondary small"
+                onClick={handleCopyPublicLink}
+                title="Copy shareable public link"
+              >
+                📋 Share
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             className="btn secondary small"
@@ -798,6 +877,27 @@ function parseFlightInfo(item) {
                                 </div>
                                 <div className="day-item-meta">
                                   {item.cost > 0 && <span className="day-item-cost">₹{item.cost}</span>}
+                                  
+                                  {/* Activity Reorder Controls (Tier 2 Item 6) */}
+                                  <button
+                                    type="button"
+                                    className="day-item-reorder-btn"
+                                    title="Move earlier"
+                                    disabled={idx === 0}
+                                    onClick={() => handleReorderDayItem(day.date, idx, -1)}
+                                  >
+                                    ▲
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="day-item-reorder-btn"
+                                    title="Move later"
+                                    disabled={idx === items.length - 1}
+                                    onClick={() => handleReorderDayItem(day.date, idx, 1)}
+                                  >
+                                    ▼
+                                  </button>
+
                                   <button
                                     type="button"
                                     className="day-item-delete-btn"
