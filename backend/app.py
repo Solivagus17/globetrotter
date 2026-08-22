@@ -249,7 +249,7 @@ def delete_trip(trip_id):
 
 @app.route("/api/public/trips/<trip_id>", methods=["GET"])
 def get_public_trip(trip_id):
-    """Fetches a public trip without authentication."""
+    """Fetches a public trip without authentication, computing chronologically ordered days and activities."""
     try:
         trip_res = supabase.table("trips").select("*").eq("id", trip_id).execute()
         if not trip_res.data:
@@ -259,10 +259,91 @@ def get_public_trip(trip_id):
             return jsonify({"error": "This trip is private"}), 403
 
         stops_res = supabase.table("stops").select("*, activities(*)").eq("trip_id", trip_id).order("order_index").execute()
-        days_res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+        stops = stops_res.data or []
 
-        trip["stops"] = stops_res.data or []
-        trip["day_items"] = days_res.data or []
+        days_res = supabase.table("day_items").select("*").eq("trip_id", trip_id).order("order_index").execute()
+        day_items = days_res.data or []
+
+        # Merge activities from stops if not already in day_items
+        existing_item_names = {it.get("name", "").lower() for it in day_items}
+        for s in stops:
+            s_city = s.get("city_name") or ""
+            s_date = s.get("start_date")
+            for act in (s.get("activities") or []):
+                act_name = act.get("name", "")
+                if act_name.lower() not in existing_item_names:
+                    day_items.append({
+                        "id": act.get("id"),
+                        "trip_id": trip_id,
+                        "item_date": act.get("activity_date") or s_date,
+                        "category": act.get("category") or "sightseeing",
+                        "name": act_name,
+                        "cost": act.get("cost", 0),
+                        "notes": act.get("notes", ""),
+                        "location_name": s_city,
+                        "order_index": act.get("order_index", 0),
+                    })
+                    existing_item_names.add(act_name.lower())
+
+        start_str = trip.get("start_date")
+        end_str = trip.get("end_date")
+        trip_dest = (trip.get("destination_city") or trip.get("description") or trip.get("name") or "Main Destination").replace("Trip to", "").replace("Tour of", "").strip()
+
+        days = []
+        if start_str and end_str:
+            try:
+                cur = datetime.strptime(start_str, "%Y-%m-%d")
+                end = datetime.strptime(end_str, "%Y-%m-%d")
+                day_num = 1
+                while cur <= end:
+                    d_str = cur.strftime("%Y-%m-%d")
+                    matching_stop = next((s for s in stops if s.get("start_date") and s.get("end_date") and s["start_date"] <= d_str <= s["end_date"]), None)
+                    city_name = matching_stop["city_name"] if matching_stop else trip_dest
+                    matching_items = sorted(
+                        [it for it in day_items if it.get("item_date") == d_str],
+                        key=lambda x: x.get("order_index", 0)
+                    )
+
+                    days.append({
+                        "day_number": day_num,
+                        "date": d_str,
+                        "formatted_date": cur.strftime("%a, %b %d"),
+                        "city_name": city_name,
+                        "items": matching_items
+                    })
+                    cur += timedelta(days=1)
+                    day_num += 1
+            except Exception as eDays:
+                print(f"Error generating public days: {eDays}")
+
+        # If dates are flexible or no days computed
+        if not days:
+            # Group by item_date and sort dates ascending
+            grouped_by_date = {}
+            for it in day_items:
+                d = it.get("item_date") or "Flexible"
+                if d not in grouped_by_date:
+                    grouped_by_date[d] = []
+                grouped_by_date[d].append(it)
+
+            sorted_dates = sorted(grouped_by_date.keys(), key=lambda d: d if d != "Flexible" else "9999-99-99")
+            for idx, d_str in enumerate(sorted_dates):
+                try:
+                    f_date = datetime.strptime(d_str, "%Y-%m-%d").strftime("%a, %b %d") if d_str != "Flexible" else "Flexible Schedule"
+                except Exception:
+                    f_date = d_str
+
+                days.append({
+                    "day_number": idx + 1,
+                    "date": d_str,
+                    "formatted_date": f_date,
+                    "city_name": trip_dest,
+                    "items": sorted(grouped_by_date[d_str], key=lambda x: x.get("order_index", 0))
+                })
+
+        trip["stops"] = stops
+        trip["day_items"] = day_items
+        trip["days"] = days
         return jsonify(trip)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
