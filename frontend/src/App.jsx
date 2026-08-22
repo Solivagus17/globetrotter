@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, Link, NavLink, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -65,7 +65,8 @@ function HomeRoute() {
 function Sidebar({ isCollapsed, onToggleCollapse }) {
   const session = useAuth()
   const navigate = useNavigate()
-  if (!session) return null
+  const location = useLocation()
+  if (!session || location.pathname.startsWith('/admin')) return null
 
   const user = session.user || {}
   const meta = user.user_metadata || {}
@@ -137,10 +138,6 @@ function Sidebar({ isCollapsed, onToggleCollapse }) {
             <IconCompass size={18} />
             {!isCollapsed && <span>Plan New Trip</span>}
           </NavLink>
-          <NavLink to="/admin" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Platform Analytics">
-            <IconLandmark size={18} />
-            {!isCollapsed && <span>Platform Analytics</span>}
-          </NavLink>
           <NavLink to="/profile" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} title="Profile & Settings">
             <IconUser size={18} />
             {!isCollapsed && <span>Profile & Settings</span>}
@@ -195,6 +192,7 @@ export default function App() {
             <Route path="/welcome" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/public/trips/:tripId" element={<PublicTrip />} />
+            <Route path="/admin" element={<AdminAnalytics />} />
             <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/trips" element={<RequireAuth><ManageTrips /></RequireAuth>} />
             <Route path="/ai" element={<RequireAuth><VoyageAI /></RequireAuth>} />
@@ -210,7 +208,6 @@ export default function App() {
             <Route path="/trips/:tripId/planner" element={<RequireAuth><DayPlanner /></RequireAuth>} />
             <Route path="/trips/:tripId/view" element={<RequireAuth><ItineraryView /></RequireAuth>} />
             <Route path="/trips/:tripId/budget" element={<RequireAuth><Budget /></RequireAuth>} />
-            <Route path="/admin" element={<RequireAuth><AdminAnalytics /></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

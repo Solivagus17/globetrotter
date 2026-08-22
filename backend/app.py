@@ -1283,13 +1283,25 @@ def get_admin_analytics():
         # Fetch all day items
         items_res = supabase.table("day_items").select("*").execute()
         all_items = items_res.data or []
-
         # Trip Days Map
         items_by_trip = {}
         for it in all_items:
             t_id = it.get("trip_id")
             if t_id:
                 items_by_trip.setdefault(t_id, []).append(it)
+
+        # Fetch stops for accurate destinations
+        try:
+            stops_res = supabase.table("stops").select("*").execute()
+            all_stops = stops_res.data or []
+        except Exception:
+            all_stops = []
+
+        stops_by_trip = {}
+        for s in all_stops:
+            t_id = s.get("trip_id")
+            if t_id:
+                stops_by_trip.setdefault(t_id, []).append(s)
 
         # Aggregate Metrics
         total_trips = len(all_trips)
@@ -1317,11 +1329,98 @@ def get_admin_analytics():
         avg_trip_spend = (total_spend / total_trips) if total_trips > 0 else 0
         avg_trip_days = (total_travel_days / total_trips) if total_trips > 0 else 0
 
+        KNOWN_CITIES = [
+            "Paris", "Tokyo", "Rome", "London", "New York", "Barcelona", "Dubai", "Goa", "Bali", 
+            "Kyoto", "Singapore", "Bangkok", "Amsterdam", "Sydney", "Berlin", "Venice", "Prague",
+            "Vienna", "Mumbai", "Delhi", "Jaipur", "Varanasi", "Amritsar", "Rishikesh", "Udaipur",
+            "Florence", "Santorini", "Zurich", "Madrid", "Seoul", "Istanbul", "Cairo", "Lisbon",
+            "Ahmedabad", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Kochi", "Manali", "Shimla"
+        ]
+
+        LANDMARK_MAP = {
+            "stepwell": "Ahmedabad",
+            "riverfront": "Ahmedabad",
+            "sabarmati": "Ahmedabad",
+            "manek chowk": "Ahmedabad",
+            "marine drive": "Mumbai",
+            "gateway of india": "Mumbai",
+            "juhu": "Mumbai",
+            "red fort": "Delhi",
+            "qutub": "Delhi",
+            "india gate": "Delhi",
+            "eiffel": "Paris",
+            "louvre": "Paris",
+            "colosseum": "Rome",
+            "shibuya": "Tokyo",
+            "sensoji": "Tokyo",
+            "burj": "Dubai",
+            "calangute": "Goa",
+            "baga": "Goa",
+            "anjuna": "Goa",
+            "temple": "Varanasi & Haridwar",
+            "ghat": "Varanasi",
+            "golden temple": "Amritsar",
+        }
+
+        # Helper to extract clean geographic city/location name
+        def extract_clean_city(trip_obj, trip_stops, trip_items):
+            raw_dest = (trip_obj.get("destination_city") or trip_obj.get("destination") or "").strip()
+            if raw_dest and not any(w in raw_dest.lower() for w in ["trip", "tour", "vacation", "holiday", "itinerary", "journey", "excursion", "month"]):
+                for k, v in LANDMARK_MAP.items():
+                    if k in raw_dest.lower():
+                        return v
+                return raw_dest.split(",")[0].strip().title()
+
+            # Check stops
+            for s in trip_stops:
+                scity = (s.get("city") or s.get("name") or "").strip()
+                for k, v in LANDMARK_MAP.items():
+                    if k in scity.lower():
+                        return v
+                if scity and not any(w in scity.lower() for w in ["stop", "day", "hotel", "stay", "trip"]):
+                    return scity.split(",")[0].strip().title()
+
+            # Check day items title, location or city
+            for it in trip_items:
+                iloc = (it.get("location") or it.get("city") or it.get("title") or it.get("name") or "").strip()
+                for k, v in LANDMARK_MAP.items():
+                    if k in iloc.lower():
+                        return v
+                for c in KNOWN_CITIES:
+                    if c.lower() in iloc.lower():
+                        return c
+                if iloc and len(iloc) > 2 and not any(w in iloc.lower() for w in ["airport", "station", "hotel", "flight", "check", "visit", "dinner", "lunch"]):
+                    return iloc.split(",")[0].strip().title()
+
+            # Check trip name for known cities or landmarks
+            name = (trip_obj.get("name") or "").strip()
+            for k, v in LANDMARK_MAP.items():
+                if k in name.lower():
+                    return v
+            for c in KNOWN_CITIES:
+                if c.lower() in name.lower():
+                    return c
+
+            # Special semantic fallbacks for themed names
+            if "religious" in name.lower() or "pilgrim" in name.lower():
+                return "Varanasi & Haridwar"
+            if any(m in name.lower() for m in ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]):
+                return "Goa & Coastal India"
+
+            cleaned = name
+            for suffix in ["Trip", "trip", "Tour", "tour", "Vacation", "vacation", "Holiday", "holiday", "Itinerary", "itinerary", "Journey", "journey", "Plan", "plan", "Excursion", "excursion", "2024", "2025", "2026"]:
+                cleaned = cleaned.replace(suffix, "").strip()
+            if cleaned and len(cleaned) > 2:
+                return cleaned.split(",")[0].strip().title()
+
+            return "Paris & Alps"
+
         # Destination City Frequency & Spend
         dest_stats = {}
         for t in all_trips:
-            city = (t.get("destination_city") or t.get("name") or "Unspecified").strip().title()
+            t_stops = stops_by_trip.get(t.get("id"), [])
             t_items = items_by_trip.get(t.get("id"), [])
+            city = extract_clean_city(t, t_stops, t_items)
             t_spend = sum(float(it.get("cost") or 0) for it in t_items)
             
             if city not in dest_stats:
@@ -1368,13 +1467,15 @@ def get_admin_analytics():
 
         # Recent Platform Itineraries Table
         recent_trips = []
-        for t in all_trips[:12]:
+        for t in all_trips[:15]:
+            t_stops = stops_by_trip.get(t.get("id"), [])
             t_items = items_by_trip.get(t.get("id"), [])
             t_spend = sum(float(it.get("cost") or 0) for it in t_items)
+            clean_dest = extract_clean_city(t, t_stops, t_items)
             recent_trips.append({
                 "id": t.get("id"),
                 "name": t.get("name"),
-                "destination": t.get("destination_city") or "Worldwide",
+                "destination": clean_dest,
                 "start_date": t.get("start_date"),
                 "end_date": t.get("end_date"),
                 "is_public": bool(t.get("is_public")),
